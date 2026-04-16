@@ -74,7 +74,7 @@ def test_parse_string_escaped_dollar():
     assert result == StringLiteral(["price: $5"])
 
 def test_parse_ternary():
-    result = parse_expr("x if cond el y")
+    result = parse_expr("x if cond else y")
     assert isinstance(result, TernaryOp)
     assert result.condition == Name("cond")
     assert result.value == Name("x")
@@ -121,19 +121,19 @@ def test_parse_aug_assignment():
     assert node.op == "+="
 
 def test_parse_function_def():
-    node = first("fn add x y\n  x+y\n")
+    node = first("def add x y\n  x+y\n")
     assert isinstance(node, FunctionDef)
     assert node.name == "add"
     assert node.params == [Param("x"), Param("y")]
     assert not node.is_method
 
 def test_parse_function_default_param():
-    node = first("fn greet name loud=0\n  name\n")
+    node = first("def greet name loud=0\n  name\n")
     assert isinstance(node, FunctionDef)
     assert node.params[1] == Param("loud", NumberLiteral(0))
 
 def test_parse_method():
-    src = "cls Dog\n  fn @bark\n    p!\n"
+    src = "class Dog\n  def @bark\n    p!\n"
     node = first(src)
     assert isinstance(node, ClassDef)
     method = node.body[0]
@@ -141,15 +141,15 @@ def test_parse_method():
     assert method.name == "bark"
 
 def test_parse_if_else():
-    src = "if x>5\n  p(\"big\")\nel\n  p(\"small\")\n"
+    src = "if x>5\n  p(\"big\")\nelse\n  p(\"small\")\n"
     node = first(src)
     assert isinstance(node, IfStatement)
     assert len(node.elifs) == 1
     cond, _ = node.elifs[0]
-    assert cond is None  # bare el
+    assert cond is None  # bare else
 
 def test_parse_elif():
-    src = "if x>5\n  a\nel x==5\n  b\nel\n  c\n"
+    src = "if x>5\n  a\nelif x==5\n  b\nelse\n  c\n"
     node = first(src)
     assert len(node.elifs) == 2
     assert node.elifs[0][0] == BinOp(Name("x"), "==", NumberLiteral(5))
@@ -167,19 +167,19 @@ def test_parse_for_tuple_unpack():
     assert node.targets == ["k", "v"]
 
 def test_parse_do():
-    src = "do x>0\n  x-=1\n"
+    src = "while x>0\n  x-=1\n"
     node = first(src)
     assert isinstance(node, DoStatement)
 
 def test_parse_try_err():
-    src = "try\n  i(val)\nerr ValueError e\n  p(e)\n"
+    src = "try\n  i(val)\nexcept ValueError e\n  p(e)\n"
     node = first(src)
     assert isinstance(node, TryStatement)
     assert node.handlers[0].exc_type == "ValueError"
     assert node.handlers[0].name == "e"
 
 def test_parse_ret():
-    src = "fn f\n  ret 42\n"
+    src = "def f\n  return 42\n"
     node = first(src)
     assert isinstance(node.body[0], RetStatement)
     assert node.body[0].value == NumberLiteral(42)
@@ -224,7 +224,7 @@ def test_parse_append():
 
 def test_try_without_handler_raises():
     from lpp.parser import ParseError
-    with pytest.raises(ParseError, match="err handler"):
+    with pytest.raises(ParseError, match="except handler"):
         parse_prog("try\n  x=1\n")
 
 def test_parse_compose():
@@ -240,7 +240,7 @@ def test_parse_compose_chain():
 def test_parse_error_has_line_and_col():
     from lpp.parser import ParseError
     try:
-        parse_prog("fn\n  x\n")  # fn with no name — INDENT follows FN
+        parse_prog("def\n  x\n")  # def with no name — INDENT follows DEF
         assert False, "expected ParseError"
     except ParseError as e:
         assert e.line is not None
@@ -312,7 +312,7 @@ def test_parse_with_multi():
     assert node.items[1][1] == "fb"
 
 def test_parse_try_finally():
-    src = "try\n  x=1\nerr\n  x=2\nfin\n  p(\"done\")\n"
+    src = "try\n  x=1\nexcept\n  x=2\nfinally\n  p(\"done\")\n"
     node = first(src)
     assert isinstance(node, TryStatement)
     assert len(node.handlers) == 1
@@ -320,14 +320,14 @@ def test_parse_try_finally():
     assert len(node.finally_body) == 1
 
 def test_parse_try_only_fin():
-    src = "try\n  x=1\nfin\n  p(\"done\")\n"
+    src = "try\n  x=1\nfinally\n  p(\"done\")\n"
     node = first(src)
     assert isinstance(node, TryStatement)
     assert node.handlers == []
     assert node.finally_body is not None
 
 def test_parse_try_err_and_fin():
-    src = "try\n  x=1\nerr ValueError e\n  p(e)\nfin\n  p(\"done\")\n"
+    src = "try\n  x=1\nexcept ValueError e\n  p(e)\nfinally\n  p(\"done\")\n"
     node = first(src)
     assert isinstance(node, TryStatement)
     assert len(node.handlers) == 1

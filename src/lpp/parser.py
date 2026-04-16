@@ -85,7 +85,7 @@ class Parser:
         if self.match(TokenType.IF):
             self.advance()
             condition = self._parse_pipeline()
-            self.expect(TokenType.EL)
+            self.expect(TokenType.ELSE)
             else_value = self._parse_pipeline()
             return TernaryOp(value, condition, else_value)
         return value
@@ -310,20 +310,20 @@ class Parser:
     def _parse_statement(self) -> Statement:
         tt = self.peek_type()
 
-        if tt == TokenType.FN:
+        if tt == TokenType.DEF:
             return self._parse_function()
-        if tt == TokenType.CLS:
+        if tt == TokenType.CLASS:
             return self._parse_class()
         if tt == TokenType.IF:
             return self._parse_if()
         if tt == TokenType.FOR:
             return self._parse_for()
-        if tt == TokenType.DO:
-            return self._parse_do()
+        if tt == TokenType.WHILE:
+            return self._parse_while()
         if tt == TokenType.TRY:
             return self._parse_try()
-        if tt == TokenType.RET:
-            return self._parse_ret()
+        if tt == TokenType.RETURN:
+            return self._parse_return()
         if tt == TokenType.USE:
             return self._parse_use()
         if tt == TokenType.ALIAS:
@@ -339,7 +339,7 @@ class Parser:
         return self._parse_expr_or_assign()
 
     def _parse_function(self) -> FunctionDef:
-        self.expect(TokenType.FN)
+        self.expect(TokenType.DEF)
         is_method = self.match(TokenType.AT)
         if is_method:
             self.advance()
@@ -361,7 +361,7 @@ class Parser:
         return params
 
     def _parse_class(self) -> ClassDef:
-        self.expect(TokenType.CLS)
+        self.expect(TokenType.CLASS)
         name = self.expect(TokenType.IDENT).value
         base = None
         if self.match(TokenType.COLON):
@@ -384,15 +384,14 @@ class Parser:
         self.skip_newlines()
         body = self._parse_block()
         elifs = []
-        while self.match(TokenType.EL):
-            self.advance()
-            if self.match(TokenType.NEWLINE, TokenType.INDENT):
-                # bare el = else
+        while self.match(TokenType.ELIF, TokenType.ELSE):
+            if self.match(TokenType.ELSE):
+                self.advance()
                 self.skip_newlines()
                 elifs.append((None, self._parse_block()))
                 break
-            else:
-                # el with condition = elif
+            else:  # ELIF
+                self.advance()
                 cond = self.parse_expression()
                 self.skip_newlines()
                 elifs.append((cond, self._parse_block()))
@@ -410,8 +409,8 @@ class Parser:
         body = self._parse_block()
         return ForStatement(targets, iterable, body)
 
-    def _parse_do(self) -> DoStatement:
-        self.expect(TokenType.DO)
+    def _parse_while(self) -> DoStatement:
+        self.expect(TokenType.WHILE)
         condition = self.parse_expression()
         self.skip_newlines()
         body = self._parse_block()
@@ -422,7 +421,7 @@ class Parser:
         self.skip_newlines()
         body = self._parse_block()
         handlers = []
-        while self.match(TokenType.ERR):
+        while self.match(TokenType.EXCEPT):
             self.advance()
             exc_type = None
             name = None
@@ -434,20 +433,20 @@ class Parser:
             hbody = self._parse_block()
             handlers.append(ErrHandler(exc_type, name, hbody))
         finally_body = None
-        if self.match(TokenType.FIN):
+        if self.match(TokenType.FINALLY):
             self.advance()
             self.skip_newlines()
             finally_body = self._parse_block()
         if not handlers and finally_body is None:
             tok = self.peek()
             raise ParseError(
-                "try block requires at least one err handler or fin clause",
+                "try block requires at least one except handler or finally clause",
                 line=tok.line, col=tok.col
             )
         return TryStatement(body, handlers, finally_body)
 
-    def _parse_ret(self) -> RetStatement:
-        self.expect(TokenType.RET)
+    def _parse_return(self) -> RetStatement:
+        self.expect(TokenType.RETURN)
         value = None
         if not self.match(TokenType.NEWLINE, TokenType.EOF):
             value = self.parse_expression()
