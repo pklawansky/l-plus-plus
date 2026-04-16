@@ -1,0 +1,9 @@
+for i in r(1,101)
+  if i%15==0
+    p("FizzBuzz")
+  el i%3==0
+    p("Fizz")
+  el i%5==0
+    p("Buzz")
+  el
+    p(i)
