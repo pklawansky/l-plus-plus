@@ -12,9 +12,9 @@ Python is readable but verbose. `l++` strips the ceremony:
 
 | Python | l++ |
 |--------|-----|
-| `def greet(name):` | `fn greet name` |
+| `def greet(name):` | `def greet name` |
 | `print(len(items))` | `p(l(items))` |
-| `return x * 2` | `ret x*2` (or just `x*2` as the last line) |
+| `return x * 2` | `return x*2` (or just `x*2` as the last line) |
 | `for i in range(10):` | `for i in r(10)` |
 | `[x*2 for x in items]` | `items\|ma(x->x*2)\|li!` |
 | `lambda x, y: x + y` | `x,y -> x+y` |
@@ -71,11 +71,11 @@ lpp: error at line 3, col 5: unterminated string literal
 for i in r(1,101)
   if i%15==0
     p("FizzBuzz")
-  el i%3==0
+  elif i%3==0
     p("Fizz")
-  el i%5==0
+  elif i%5==0
     p("Buzz")
-  el
+  else
     p(i)
 ```
 
@@ -90,36 +90,38 @@ lpp fizzbuzz.lpp --run
 
 ### Keywords
 
+Standard Python control-flow keywords are used as-is. The only l++-specific keywords are those that provide genuine syntactic compression beyond a single-token swap.
+
 | l++ | Python | Notes |
 |-----|--------|-------|
-| `fn name params` | `def name(params):` | No parentheses on params |
-| `fn @name params` | method definition | `self` injected automatically |
-| `cls Name` | `class Name:` | |
-| `cls Name:Base` | `class Name(Base):` | |
+| `def name params` | `def name(params):` | No parentheses on params |
+| `def @name params` | method definition | `self` injected automatically |
+| `class Name` | `class Name:` | |
+| `class Name:Base` | `class Name(Base):` | |
 | `if expr` | `if expr:` | No colon |
-| `el expr` | `elif expr:` | |
-| `el` | `else:` | Bare `el` = else |
-| `for x in expr` | `for x in expr:` | |
+| `elif expr` | `elif expr:` | No colon |
+| `else` | `else:` | No colon |
+| `for x in expr` | `for x in expr:` | No colon |
 | `for x,y in expr` | `for x, y in expr:` | Tuple unpacking |
-| `do expr` | `while expr:` | |
-| `ret expr` | `return expr` | |
-| `ret` | `return` | |
+| `while expr` | `while expr:` | No colon |
+| `return expr` | `return expr` | |
+| `return` | `return` | |
 | `try` | `try:` | |
-| `err ExcType name` | `except ExcType as name:` | |
-| `err ExcType` | `except ExcType:` | |
-| `err` | `except:` | |
-| `fin` | `finally:` | |
-| `use module` | `import module` | |
+| `except ExcType name` | `except ExcType as name:` | |
+| `except ExcType` | `except ExcType:` | |
+| `except` | `except:` | |
+| `finally` | `finally:` | |
+| `use module` | `import module` | Unified import syntax |
 | `use alias=module` | `import module as alias` | |
 | `use module:item` | `from module import item` | |
 | `use module:item=alias` | `from module import item as alias` | |
 | `use module:a,b,c` | `from module import a, b, c` | |
-| `alias name = expr` | `name = expr` (function alias) | Assigns any callable |
+| `alias name = expr` | `name = expr` | Assigns any callable |
 | `raise ExcType(msg)` | `raise ExcType(msg)` | |
 | `raise exc from cause` | `raise exc from cause` | |
 | `with expr as name` | `with expr as name:` | |
 | `global x, y` | `global x, y` | |
-| `nl x, y` | `nonlocal x, y` | |
+| `nl x, y` | `nonlocal x, y` | `nl` kept — `nonlocal` is 2 tokens |
 | `break` | `break` | |
 | `continue` | `continue` | |
 
@@ -130,7 +132,7 @@ Blocks are delimited by **indentation** — no colons, no braces.
 The last expression in a function body is automatically returned:
 
 ```
-fn double x
+def double x
   x * 2
 ```
 
@@ -140,25 +142,25 @@ def double(x):
     return x * 2
 ```
 
-Use an explicit `ret` anywhere else in the body.
+Use an explicit `return` anywhere else in the body.
 
 ### Self and Methods
 
-Inside a `cls` block, prefix method definitions with `@`:
+Inside a `class` block, prefix method definitions with `@`:
 
 ```
-cls Counter
-  fn @init start=0
+class Counter
+  def @init start=0
     @count = start
 
-  fn @inc
+  def @inc
     @count += 1
 
-  fn @value
+  def @value
     @count
 ```
 
-- `fn @init` → `def __init__(self, ...)` (dunder names handled automatically)
+- `def @init` → `def __init__(self, ...)` (dunder names handled automatically)
 - `@count` → `self.count`
 
 ### Operators
@@ -212,7 +214,7 @@ Compiles to f-strings. Escape a literal `$` with `$$`.
 ### Ternary Expression
 
 ```
-result = "yes" if cond el "no"
+result = "yes" if cond else "no"
 ```
 
 Compiles to:
@@ -280,16 +282,16 @@ These aliases are injected at the top of every compiled file — no imports need
 ## Larger Example
 
 ```
-fn flatten lst
+def flatten lst
   result = []
   for item in lst
     if isa(item, li)
       result << flatten(item)
-    el
+    else
       result << item
   result
 
-fn main
+def main
   data = [[1,2,[3]],4,[5,6]]
   flat = flatten(data)
   p("flat: $flat$")

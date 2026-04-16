@@ -3,16 +3,17 @@ from enum import Enum, auto
 
 class TokenType(Enum):
     # Keywords
-    FN = auto()
-    CLS = auto()
+    DEF = auto()
+    CLASS = auto()
     IF = auto()
-    EL = auto()
+    ELIF = auto()
+    ELSE = auto()
     FOR = auto()
     IN = auto()
-    DO = auto()
-    RET = auto()
+    WHILE = auto()
+    RETURN = auto()
     TRY = auto()
-    ERR = auto()
+    EXCEPT = auto()
     USE = auto()
     ALIAS = auto()
     BREAK = auto()
@@ -20,7 +21,7 @@ class TokenType(Enum):
     RAISE = auto()
     WITH = auto()
     AS = auto()
-    FIN = auto()
+    FINALLY = auto()
     GLOBAL = auto()
     NL = auto()
     FROM = auto()
@@ -70,16 +71,17 @@ class TokenType(Enum):
     EOF = auto()
 
 KEYWORDS: dict[str, TokenType] = {
-    "fn": TokenType.FN,
-    "cls": TokenType.CLS,
+    "def": TokenType.DEF,
+    "class": TokenType.CLASS,
     "if": TokenType.IF,
-    "el": TokenType.EL,
+    "elif": TokenType.ELIF,
+    "else": TokenType.ELSE,
     "for": TokenType.FOR,
     "in": TokenType.IN,
-    "do": TokenType.DO,
-    "ret": TokenType.RET,
+    "while": TokenType.WHILE,
+    "return": TokenType.RETURN,
     "try": TokenType.TRY,
-    "err": TokenType.ERR,
+    "except": TokenType.EXCEPT,
     "use": TokenType.USE,
     "alias": TokenType.ALIAS,
     "break": TokenType.BREAK,
@@ -87,7 +89,7 @@ KEYWORDS: dict[str, TokenType] = {
     "raise": TokenType.RAISE,
     "with": TokenType.WITH,
     "as": TokenType.AS,
-    "fin": TokenType.FIN,
+    "finally": TokenType.FINALLY,
     "global": TokenType.GLOBAL,
     "nl": TokenType.NL,
     "from": TokenType.FROM,

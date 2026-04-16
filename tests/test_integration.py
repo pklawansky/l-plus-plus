@@ -23,7 +23,7 @@ def test_hello_world():
 
 def test_function_call():
     src = textwrap.dedent("""\
-        fn add x y
+        def add x y
           x+y
         p(add(3,4))
     """)
@@ -48,10 +48,10 @@ def test_pipeline():
 
 def test_class():
     src = textwrap.dedent("""\
-        cls Dog
-          fn @init name
+        class Dog
+          def @init name
             @name=name
-          fn @bark
+          def @bark
             p("Woof! I'm $@name$")
         d=Dog("Rex")
         d.bark!
@@ -65,9 +65,9 @@ def test_string_escape_roundtrip():
 
 def test_function_composition():
     src = textwrap.dedent("""\
-        fn double x
+        def double x
           x*2
-        fn inc x
+        def inc x
           x+1
         h=double&inc
         p(h(4))
@@ -89,7 +89,7 @@ def test_raise_caught():
     src = textwrap.dedent("""\
         try
           raise ValueError("oops")
-        err ValueError e
+        except ValueError e
           p("caught")
     """)
     assert run_lpp(src) == "caught"
@@ -110,7 +110,7 @@ def test_with_file():
 def test_global_mutation():
     src = textwrap.dedent("""\
         x=0
-        fn bump
+        def bump
           global x
           x+=1
         bump!
@@ -125,9 +125,9 @@ def test_finally_runs():
         try
           log<<1
           raise RuntimeError("e")
-        err
+        except
           log<<2
-        fin
+        finally
           log<<3
         p(log)
     """)

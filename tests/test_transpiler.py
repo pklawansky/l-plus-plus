@@ -52,7 +52,7 @@ def test_self_attr():
     assert py("@name\n") == "self.name"
 
 def test_ternary():
-    assert py("x if cond el y\n") == "x if cond else y"
+    assert py("x if cond else y\n") == "x if cond else y"
 
 # Statements
 def test_assignment():
@@ -65,35 +65,35 @@ def test_append():
     assert py("items<<x\n") == "items.append(x)"
 
 def test_ret():
-    assert py("fn f\n  ret 42\n") == "def f():\n    return 42"
+    assert py("def f\n  return 42\n") == "def f():\n    return 42"
 
 def test_function_implicit_return():
-    result = py("fn add x y\n  x+y\n")
+    result = py("def add x y\n  x+y\n")
     assert result == "def add(x, y):\n    return x + y"
 
 def test_function_default_param():
-    result = py("fn greet name loud=0\n  name\n")
+    result = py("def greet name loud=0\n  name\n")
     assert "def greet(name, loud=0):" in result
 
 def test_method():
-    src = "cls Dog\n  fn @bark\n    p!\n"
+    src = "class Dog\n  def @bark\n    p!\n"
     result = py(src)
     assert "def bark(self):" in result
     assert "p()" in result  # p is the prelude alias — transpiler emits p(), not print()
 
 def test_class_inheritance():
     # Use a real L++ body — 'pass' is not an L++ keyword
-    result = py("cls GoldenRetriever:Dog\n  fn @init name\n    @name=name\n")
+    result = py("class GoldenRetriever:Dog\n  def @init name\n    @name=name\n")
     assert "class GoldenRetriever(Dog):" in result
 
 def test_if_else():
-    src = 'if x>5\n  p("big")\nel\n  p("small")\n'
+    src = 'if x>5\n  p("big")\nelse\n  p("small")\n'
     result = py(src)
     assert "if x > 5:" in result
     assert "else:" in result
 
 def test_elif():
-    src = 'if x>5\n  p("big")\nel x==5\n  p("mid")\nel\n  p("small")\n'
+    src = 'if x>5\n  p("big")\nelif x==5\n  p("mid")\nelse\n  p("small")\n'
     result = py(src)
     assert "elif x == 5:" in result
 
@@ -108,11 +108,11 @@ def test_for_tuple_unpack():
     assert "for k, v in d.items():" in result
 
 def test_do():
-    result = py("do x>0\n  x-=1\n")
+    result = py("while x>0\n  x-=1\n")
     assert "while x > 0:" in result
 
 def test_try_err():
-    src = "try\n  i(val)\nerr ValueError e\n  p(e)\n"
+    src = "try\n  i(val)\nexcept ValueError e\n  p(e)\n"
     result = py(src)
     assert "try:" in result
     assert "except ValueError as e:" in result
@@ -138,7 +138,7 @@ def test_alias_statement():
     assert "sq = math.sqrt" in result
 
 def test_use_inside_function_indented():
-    result = py("fn f\n  use os\n  os\n")
+    result = py("def f\n  use os\n  os\n")
     assert "    import os" in result
 
 def test_use_multi_item_from():
@@ -244,13 +244,13 @@ def test_with_multi():
     assert "as fb" in result
 
 def test_try_finally():
-    src = "try\n  x=1\nerr\n  x=2\nfin\n  p(\"done\")\n"
+    src = "try\n  x=1\nexcept\n  x=2\nfinally\n  p(\"done\")\n"
     result = py(src)
     assert "finally:" in result
     assert 'p("done")' in result
 
 def test_try_only_fin():
-    src = "try\n  x=1\nfin\n  p(\"done\")\n"
+    src = "try\n  x=1\nfinally\n  p(\"done\")\n"
     result = py(src)
     assert "try:" in result
     assert "finally:" in result

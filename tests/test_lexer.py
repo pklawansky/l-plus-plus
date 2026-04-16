@@ -14,11 +14,11 @@ def test_token_creation():
     assert t.type == TokenType.IDENT
 
 def test_keywords():
-    assert types("fn") == [TokenType.FN]
-    assert types("if el for in do ret try err use alias cls") == [
-        TokenType.IF, TokenType.EL, TokenType.FOR, TokenType.IN,
-        TokenType.DO, TokenType.RET, TokenType.TRY, TokenType.ERR,
-        TokenType.USE, TokenType.ALIAS, TokenType.CLS,
+    assert types("def") == [TokenType.DEF]
+    assert types("if elif else for in while return try except use alias class") == [
+        TokenType.IF, TokenType.ELIF, TokenType.ELSE, TokenType.FOR, TokenType.IN,
+        TokenType.WHILE, TokenType.RETURN, TokenType.TRY, TokenType.EXCEPT,
+        TokenType.USE, TokenType.ALIAS, TokenType.CLASS,
     ]
 
 def test_identifiers():
@@ -47,7 +47,7 @@ def test_comparison_ops():
     ]
 
 def test_indent_dedent():
-    src = "fn foo\n  x\n"
+    src = "def foo\n  x\n"
     toks = tokenize(src)
     tt = [t.type for t in toks]
     assert TokenType.INDENT in tt
