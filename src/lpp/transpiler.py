@@ -108,7 +108,10 @@ class Transpiler:
                 params.append(p.name)
         param_str = ", ".join(params)
         name = f"__{node.name}__" if node.is_method and node.name in self._DUNDER_NAMES else node.name
-        lines = [f"{pad}def {name}({param_str}):"]
+        lines = []
+        for dec in node.decorators:
+            lines.append(f"{pad}@{self._expr(dec)}")
+        lines.append(f"{pad}def {name}({param_str}):")
         if not node.body:
             lines.append(f"{INDENT * (depth + 1)}pass")
         else:
@@ -125,7 +128,10 @@ class Transpiler:
     def _cls(self, node: ClassDef, depth: int) -> str:
         pad = INDENT * depth
         base = f"({node.base})" if node.base else ""
-        lines = [f"{pad}class {node.name}{base}:"]
+        lines = []
+        for dec in node.decorators:
+            lines.append(f"{pad}@{self._expr(dec)}")
+        lines.append(f"{pad}class {node.name}{base}:")
         for method in node.body:
             lines.append(self._fn(method, depth + 1))
         return "\n".join(lines)

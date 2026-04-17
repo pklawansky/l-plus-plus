@@ -273,3 +273,32 @@ def test_subscript_aug():
 
 def test_attr_aug():
     assert py("obj.attr+=1\n") == "obj.attr += 1"
+
+# Decorators
+def test_decorator_simple_on_fn():
+    result = py("@staticmethod\ndef foo x\n  x*2\n")
+    assert result == "@staticmethod\ndef foo(x):\n    return x * 2"
+
+def test_decorator_stacked():
+    result = py("@classmethod\n@cache\ndef bar cls n\n  n\n")
+    assert result == "@classmethod\n@cache\ndef bar(cls, n):\n    return n"
+
+def test_decorator_call_expression():
+    result = py("@lru_cache(maxsize=128)\ndef fib n\n  n\n")
+    assert result == "@lru_cache(maxsize=128)\ndef fib(n):\n    return n"
+
+def test_decorator_attribute_expression():
+    result = py('@app.route("/")\ndef index\n  "hi"\n')
+    assert result == '@app.route("/")\ndef index():\n    return "hi"'
+
+def test_decorator_on_class():
+    result = py("@dataclass\nclass Point\n  def @init x\n    @x=x\n")
+    assert result == "@dataclass\nclass Point:\n    def __init__(self, x):\n        self.x = x"
+
+def test_decorator_on_method():
+    result = py("class Foo\n  @property\n  def @bar\n    @_bar\n")
+    assert result == "class Foo:\n    @property\n    def bar(self):\n        return self._bar"
+
+def test_no_decorator_unchanged():
+    result = py("def foo x\n  x*2\n")
+    assert result == "def foo(x):\n    return x * 2"
