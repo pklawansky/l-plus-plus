@@ -448,3 +448,41 @@ def test_classdef_decorators_default_empty():
     from lpp.ast_nodes import ClassDef
     node = ClassDef("Foo", None, [])
     assert node.decorators == []
+
+def test_is_decorator_context_true_for_simple():
+    from lpp.lexer import Lexer
+    from lpp.parser import Parser
+    tokens = Lexer("@staticmethod\ndef foo x\n  x\n").tokenize()
+    p = Parser(tokens)
+    assert p._is_decorator_context() is True
+
+def test_is_decorator_context_true_for_stacked():
+    from lpp.lexer import Lexer
+    from lpp.parser import Parser
+    tokens = Lexer("@classmethod\n@cache\ndef bar cls\n  1\n").tokenize()
+    p = Parser(tokens)
+    assert p._is_decorator_context() is True
+
+def test_is_decorator_context_true_for_class():
+    from lpp.lexer import Lexer
+    from lpp.parser import Parser
+    tokens = Lexer("@dataclass\nclass Point\n  def @init x\n    @x=x\n").tokenize()
+    p = Parser(tokens)
+    assert p._is_decorator_context() is True
+
+def test_is_decorator_context_false_when_no_def_follows():
+    from lpp.lexer import Lexer
+    from lpp.parser import Parser
+    tokens = Lexer("@x\np(@x)\n").tokenize()
+    p = Parser(tokens)
+    assert p._is_decorator_context() is False
+
+def test_is_decorator_context_does_not_advance_position():
+    from lpp.lexer import Lexer
+    from lpp.parser import Parser
+    from lpp.tokens import TokenType
+    tokens = Lexer("@staticmethod\ndef foo x\n  x\n").tokenize()
+    p = Parser(tokens)
+    pos_before = p.pos
+    p._is_decorator_context()
+    assert p.pos == pos_before

@@ -45,6 +45,25 @@ class Parser:
         while self.match(TokenType.NEWLINE):
             self.advance()
 
+    def _is_decorator_context(self) -> bool:
+        save = self.pos
+        try:
+            while self.peek_type() == TokenType.AT:
+                self.advance()  # consume @
+                depth = 0
+                while not (self.match(TokenType.NEWLINE, TokenType.EOF) and depth == 0):
+                    if self.peek_type() in (TokenType.LPAREN, TokenType.LBRACKET, TokenType.LBRACE):
+                        depth += 1
+                    elif self.peek_type() in (TokenType.RPAREN, TokenType.RBRACKET, TokenType.RBRACE):
+                        depth -= 1
+                    self.advance()
+                if self.match(TokenType.NEWLINE):
+                    self.advance()
+                self.skip_newlines()
+            return self.peek_type() in (TokenType.DEF, TokenType.CLASS)
+        finally:
+            self.pos = save
+
     # --- String interpolation ---
 
     def _parse_string_literal(self, raw: str) -> StringLiteral:
