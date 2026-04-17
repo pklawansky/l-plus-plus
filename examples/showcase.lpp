@@ -1,0 +1,297 @@
+# showcase.lpp — exercises as many Python paradigms as possible to surface gaps
+# Run:  py -m lpp examples/showcase.lpp --run
+
+use functools:lru_cache
+use collections:defaultdict
+use dataclasses:dataclass
+
+# ─── 1. Dataclass + property + dunder ────────────────────────────────────────
+
+@dataclass
+class Vec2
+  def @init x y=0.0
+    @x=x
+    @y=y
+
+  @property
+  def @length
+    # ** not supported — using pow() as workaround
+    pow(@x*@x+@y*@y, 0.5)
+
+  def @__add__ other
+    Vec2(@x+other.x, @y+other.y)
+
+  def @__mul__ scalar
+    Vec2(@x*scalar, @y*scalar)
+
+  def @__repr__
+    "Vec2($@x$, $@y$)"
+
+# ─── 2. Inheritance + static method ──────────────────────────────────────────
+
+class Shape
+  @staticmethod
+  def total_area shapes
+    shapes|ma(x->x.area)|su!
+
+class Circle:Shape
+  def @init r
+    @r=r
+
+  @property
+  def @area
+    3.14159265*@r*@r
+
+  def @__repr__
+    "Circle(r=$@r$)"
+
+class Rect:Shape
+  def @init w h
+    @w=w
+    @h=h
+
+  @property
+  def @area
+    @w*@h
+
+  def @__repr__
+    "Rect($@w$x$@h$)"
+
+# ─── 3. Context manager ───────────────────────────────────────────────────────
+
+class Accumulator
+  def @init label
+    @label=label
+    @items=[]
+    @total=0
+
+  def @__enter__
+    return self
+
+  def @__exit__ exc_type exc_val exc_tb
+    p("[$@label$] total=$@total$, items=$l(@items)$")
+    return False
+
+  def @push val
+    @items<<val
+    @total+=val
+
+# ─── 4. Iterator ──────────────────────────────────────────────────────────────
+
+class CountDown
+  def @init n
+    @n=n
+
+  def @__iter__
+    return self
+
+  def @__next__
+    if @n<0
+      raise StopIteration!
+    val=@n
+    @n-=1
+    return val
+
+# ─── 5. Closure + nonlocal ───────────────────────────────────────────────────
+
+def make_counter start=0
+  count=start
+  def step
+    nl count
+    count+=1
+    count
+  step
+
+# ─── 6. Memoisation ──────────────────────────────────────────────────────────
+
+@lru_cache(maxsize=64)
+def fib n
+  1 if n<=1 else fib(n-1)+fib(n-2)
+
+# ─── 7. Error handling ───────────────────────────────────────────────────────
+
+def safe_div a b
+  try
+    return a/b
+  except ZeroDivisionError e
+    p("ZeroDivisionError: $e$")
+    return None
+  finally
+    p("(safe_div done)")
+
+# ─── 8. Pipelines + lambdas ──────────────────────────────────────────────────
+
+def even_squares nums
+  nums|fi(x->x%2==0)|ma(x->x*x)|li!
+
+def top_k items k=5
+  items|so(reverse=1)|li!
+
+# ─── 9. Boolean ops (and / or / ~ for not) ───────────────────────────────────
+
+def classify x
+  "none" if x==None else ("negative" if x<0 else ("zero" if x==0 else "positive"))
+
+def both_positive a b
+  a>0 and b>0
+
+def either_positive a b
+  a>0 or b>0
+
+def is_even n
+  ~(n%2==1)
+
+# ─── 10. String interpolation ────────────────────────────────────────────────
+
+def greet name greeting="Hello"
+  "$greeting$, $name$! ($l(name)$ chars)"
+
+# ─── 11. defaultdict ─────────────────────────────────────────────────────────
+
+def word_freq text
+  counts=defaultdict(int)
+  for w in text.split!
+    counts[w]+=1
+  di(counts)
+
+# ─── 12. Unpack + star-unpack ────────────────────────────────────────────────
+
+def split_hd lst
+  h,*t=lst
+  p("head=$h$  tail=$t$")
+
+# ─── 13. in operator + and/or in condition ───────────────────────────────────
+
+def check_membership val collection
+  val in collection
+
+def range_check n lo hi
+  n>=lo and n<=hi
+
+# ─── 14. Alias + compose ─────────────────────────────────────────────────────
+
+alias double=x->x*2
+alias inc=x->x+1
+alias double_then_inc=double&inc
+
+# ─── GAP PROBES — uncomment one at a time to surface exact errors ────────────
+# Each probe below will fail at parse or transpile time.
+
+# 15. ** power operator → LexError: unexpected token STAR
+# def power_test a b
+#   a**b
+
+# 16. List comprehension → ParseError (no comprehension syntax)
+# def squares_comp n
+#   [x*x for x in r(n)]
+
+# 17. Dict comprehension → ParseError
+# def index_map items
+#   {v: i for i,v in en(items)}
+
+# 18. *args / **kwargs in function params → ParseError
+# def variadic *args **kwargs
+#   p(args)
+#   p(kwargs)
+
+# 19. Slice notation → ParseError (COLON inside subscript)
+# def first_n lst n
+#   lst[0:n]
+
+# 20. is operator → parses as Name("is"), wrong output
+# def is_none x
+#   x is None
+
+# 21. not in → ParseError (not is ~, then `in` is a keyword not allowed here)
+# def not_member val col
+#   val not in col
+
+# 22. Tuple return → only first value returned (no Tuple AST node)
+# def minmax lst
+#   return mn(lst), mx(lst)
+
+# ─── RUN ALL ──────────────────────────────────────────────────────────────────
+
+p("=== 1. Vec2 / dataclass / dunder ===")
+a=Vec2(3.0,4.0)
+b=Vec2(1.0,2.0)
+p(a)
+p(a+b)
+p(a*2)
+p("length of a:", a.length)
+
+p("")
+p("=== 2. Shapes + inheritance ===")
+shapes=[Circle(5),Rect(3,4),Circle(1)]
+p(shapes)
+p("total area:", Shape.total_area(shapes))
+
+p("")
+p("=== 3. Context manager ===")
+with Accumulator("budget") as acc
+  acc.push(100)
+  acc.push(250)
+  acc.push(75)
+
+p("")
+p("=== 4. Iterator ===")
+for n in CountDown(5)
+  p(n)
+
+p("")
+p("=== 5. Closure / nonlocal ===")
+c=make_counter(0)
+p(c!)
+p(c!)
+p(c!)
+
+p("")
+p("=== 6. Fibonacci / lru_cache ===")
+p(r(1,11)|ma(fib)|li!)
+
+p("")
+p("=== 7. Error handling / finally ===")
+p(safe_div(10,3))
+p(safe_div(5,0))
+
+p("")
+p("=== 8. Pipelines ===")
+p(even_squares(r(1,20)|li!))
+p(top_k([3,1,4,1,5,9,2,6,5]))
+
+p("")
+p("=== 9. Boolean ops ===")
+p(classify(None))
+p(classify(-5))
+p(classify(0))
+p(classify(3))
+p(both_positive(2,3))
+p(both_positive(-1,3))
+p(either_positive(-1,3))
+p(is_even(4))
+p(is_even(7))
+
+p("")
+p("=== 10. String interpolation ===")
+p(greet("Alice"))
+p(greet("Bob","Hi"))
+
+p("")
+p("=== 11. defaultdict ===")
+p(word_freq("the cat sat on the mat the cat"))
+
+p("")
+p("=== 12. Unpack ===")
+split_hd([10,20,30,40,50])
+
+p("")
+p("=== 13. in / range_check ===")
+p(check_membership(3,[1,2,3,4]))
+p(check_membership(9,[1,2,3,4]))
+p(range_check(5,1,10))
+p(range_check(15,1,10))
+
+p("")
+p("=== 14. Compose ===")
+p(double_then_inc(5))
+p(r(1,6)|ma(double_then_inc)|li!)
