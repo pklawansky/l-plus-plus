@@ -248,6 +248,39 @@ def test_parse_error_has_line_and_col():
         assert e.col is not None
         assert e.col >= 1
 
+def test_parse_decorated_function():
+    from lpp.ast_nodes import FunctionDef, Name
+    node = first("@staticmethod\ndef foo x\n  x\n")
+    assert isinstance(node, FunctionDef)
+    assert node.name == "foo"
+    assert node.decorators == [Name("staticmethod")]
+
+def test_parse_stacked_decorators_on_function():
+    from lpp.ast_nodes import FunctionDef, Name
+    node = first("@classmethod\n@cache\ndef bar cls\n  1\n")
+    assert isinstance(node, FunctionDef)
+    assert node.decorators == [Name("classmethod"), Name("cache")]
+
+def test_parse_decorated_class():
+    from lpp.ast_nodes import ClassDef, Name
+    node = first("@dataclass\nclass Point\n  def @init x\n    @x=x\n")
+    assert isinstance(node, ClassDef)
+    assert node.name == "Point"
+    assert node.decorators == [Name("dataclass")]
+
+def test_parse_decorated_method_inside_class():
+    from lpp.ast_nodes import ClassDef, Name
+    node = first("class Foo\n  @property\n  def @bar\n    @_bar\n")
+    assert isinstance(node, ClassDef)
+    assert node.body[0].name == "bar"
+    assert node.body[0].decorators == [Name("property")]
+
+def test_at_attr_not_before_def_is_unchanged():
+    from lpp.ast_nodes import ExprStatement, SelfAttr
+    node = first("@x\n")
+    assert isinstance(node, ExprStatement)
+    assert node.expr == SelfAttr("x")
+
 def test_parse_error_has_expected_field():
     from lpp.parser import ParseError
     try:

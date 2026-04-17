@@ -347,6 +347,12 @@ class Parser:
     def _parse_statement(self) -> Statement:
         tt = self.peek_type()
 
+        if tt == TokenType.AT and self._is_decorator_context():
+            decorators = self._collect_decorators()
+            if self.peek_type() == TokenType.DEF:
+                return self._parse_function(decorators)
+            return self._parse_class(decorators)
+
         if tt == TokenType.DEF:
             return self._parse_function()
         if tt == TokenType.CLASS:
@@ -375,7 +381,9 @@ class Parser:
         # Could be assignment, aug-assignment, append, or expression statement
         return self._parse_expr_or_assign()
 
-    def _parse_function(self) -> FunctionDef:
+    def _parse_function(self, decorators=None) -> FunctionDef:
+        if decorators is None:
+            decorators = []
         self.expect(TokenType.DEF)
         is_method = self.match(TokenType.AT)
         if is_method:
@@ -384,7 +392,7 @@ class Parser:
         params = self._parse_params()
         self.skip_newlines()
         body = self._parse_block()
-        return FunctionDef(name, params, body, is_method)
+        return FunctionDef(name, params, body, is_method, decorators)
 
     def _parse_params(self) -> list[Param]:
         params = []
@@ -397,7 +405,9 @@ class Parser:
             params.append(Param(pname, default))
         return params
 
-    def _parse_class(self) -> ClassDef:
+    def _parse_class(self, decorators=None) -> ClassDef:
+        if decorators is None:
+            decorators = []
         self.expect(TokenType.CLASS)
         name = self.expect(TokenType.IDENT).value
         base = None
@@ -409,11 +419,14 @@ class Parser:
         methods = []
         self.skip_newlines()
         while not self.match(TokenType.DEDENT, TokenType.EOF):
-            methods.append(self._parse_function())
+            method_decorators = []
+            if self.peek_type() == TokenType.AT and self._is_decorator_context():
+                method_decorators = self._collect_decorators()
+            methods.append(self._parse_function(method_decorators))
             self.skip_newlines()
         if self.match(TokenType.DEDENT):
             self.advance()
-        return ClassDef(name, base, methods)
+        return ClassDef(name, base, methods, decorators)
 
     def _parse_if(self) -> IfStatement:
         self.expect(TokenType.IF)
