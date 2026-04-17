@@ -438,3 +438,13 @@ def test_while_missing_body_raises():
     from lpp.parser import ParseError
     with pytest.raises(ParseError):
         parse_prog("while x\n")
+
+def test_functiondef_decorators_default_empty():
+    from lpp.ast_nodes import FunctionDef
+    node = FunctionDef("foo", [], [], False)
+    assert node.decorators == []
+
+def test_classdef_decorators_default_empty():
+    from lpp.ast_nodes import ClassDef
+    node = ClassDef("Foo", None, [])
+    assert node.decorators == []

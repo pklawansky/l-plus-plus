@@ -30,6 +30,7 @@ class FunctionDef:
     params: list["Param"]
     body: list[Statement]
     is_method: bool
+    decorators: list = field(default_factory=list)
 
 @dataclass
 class Param:
@@ -41,6 +42,7 @@ class ClassDef:
     name: str
     base: str | None
     body: list[FunctionDef]
+    decorators: list = field(default_factory=list)
 
 @dataclass
 class Assignment:
