@@ -10,3 +10,7 @@
 - Re-rank items if new information changes their relative value
 
 Update `priorities.md` before ending any session where work was done.
+
+## Design decisions
+
+When brainstorming approaches, go with the recommended option unless the user explicitly redirects. Don't re-litigate choices that have already been approved.
