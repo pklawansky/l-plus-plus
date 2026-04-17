@@ -368,3 +368,65 @@ def test_parse_attr_aug():
     assert isinstance(node, AugAssignment)
     assert node.target == Attribute(Name("obj"), "attr")
     assert node.op == "+="
+
+# --- Error-path tests ---
+
+def test_unclosed_paren_in_call_raises():
+    from lpp.parser import ParseError
+    with pytest.raises(ParseError):
+        parse_expr("add(1,2")
+
+def test_unclosed_list_literal_raises():
+    from lpp.parser import ParseError
+    with pytest.raises(ParseError):
+        parse_expr("[1, 2, 3")
+
+def test_unclosed_dict_literal_raises():
+    from lpp.parser import ParseError
+    with pytest.raises(ParseError):
+        parse_expr("{1: 2")
+
+def test_lambda_no_body_falls_back_to_name():
+    # `x->` has no body — the lambda lookahead catches the ParseError and
+    # falls back, returning Name("x"). The `->` is left in the token stream
+    # but parse_expression stops at the Name.
+    node = parse_expr("x->")
+    assert node == Name("x")
+
+def test_lambda_multi_param_no_body_falls_back():
+    # `x,y->` with no body: lookahead fails, falls back to Name("x").
+    node = parse_expr("x,y->")
+    assert node == Name("x")
+
+def test_incomplete_unpack_at_stmt_level_raises():
+    # `a,b` with no `=` at statement level: _try_parse_unpack_targets resets
+    # (no = found), Path 3 parses `a` as ExprStatement, then the stray `,b`
+    # causes ParseError on the next statement. This is a known limitation.
+    from lpp.parser import ParseError
+    with pytest.raises(ParseError):
+        parse_prog("a,b\n")
+
+def test_ternary_missing_else_raises():
+    from lpp.parser import ParseError
+    with pytest.raises(ParseError):
+        parse_expr("x if cond")
+
+def test_function_def_missing_name_raises():
+    from lpp.parser import ParseError
+    with pytest.raises(ParseError):
+        parse_prog("def\n  x\n")
+
+def test_function_def_missing_body_raises():
+    from lpp.parser import ParseError
+    with pytest.raises(ParseError):
+        parse_prog("def f\n")
+
+def test_if_missing_body_raises():
+    from lpp.parser import ParseError
+    with pytest.raises(ParseError):
+        parse_prog("if x\n")
+
+def test_while_missing_body_raises():
+    from lpp.parser import ParseError
+    with pytest.raises(ParseError):
+        parse_prog("while x\n")

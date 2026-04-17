@@ -1,4 +1,17 @@
 {
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo '{\"systemMessage\": \"Session ending — update priorities.md before closing: mark completed items DONE, mark in-progress items, add any new discoveries.\"}'",
+            "statusMessage": "Checking priorities.md reminder..."
+          }
+        ]
+      }
+    ]
+  },
   "permissions": {
     "allow": [
       "Bash(pip install:*)",
@@ -18,7 +31,10 @@
       "Bash(git:*)",
       "Bash(del C:\\\\Repos\\\\Personal\\\\l-plus-plus\\\\cr_check.py)",
       "Bash(grep -E \"\\\\.\\(md|txt\\)$\")",
-      "Bash(grep:*)"
+      "Bash(grep:*)",
+      "Bash(gh pr *)",
+      "Skill(gsd:map-codebase)",
+      "Skill(update-config)"
     ]
   }
 }
