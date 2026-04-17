@@ -1,20 +1,16 @@
 # L++ Work Priorities
 
-*Last updated: 2026-04-17*
+*Last updated: 2026-04-17 (session 2)*
 
 ---
 
 ## Highest Return
 
-### 1. String escape handling — `[ IN PROGRESS ]`
-**Why:** Unescape-in-lexer / re-escape-in-transpiler split is the biggest silent correctness risk. Spec already exists at `docs/superpowers/specs/2026-04-16-tier1-string-escaping-design.md`.
-**Files:** `src/lpp/lexer.py:125`, `src/lpp/transpiler.py:221-251`
-**Done when:** All string paths route through `escape_str_content`; integration test `test_string_escape_roundtrip` passes; no escape sequence mismatch possible.
+### 1. String escape handling — `[ DONE ]`
+`_escape_str_content` implemented in `transpiler.py:234-251`, `_string()` uses it on all paths. 7 transpiler tests passing. Was already complete before this session.
 
-### 2. Parser error coverage — `[ PENDING ]`
-**Why:** `test_parser.py` has happy-path only. Lookahead patterns (`parser.py:103-121`, `574-662`) are fragile — a refactor could introduce silent failures.
-**Work:** Add ~10-15 error-path tests covering: missing closing paren, `x->` (lambda no body), incomplete unpack, unterminated string, invalid escape.
-**Done when:** All ParseError/LexError paths have at least one test.
+### 2. Parser error coverage — `[ DONE ]`
+Added 11 error-path tests: unclosed paren/list/dict, missing def/if/while body, ternary missing else, lambda fallback behavior, incomplete unpack at statement level. 172/172 tests pass.
 
 ### 3. `_parse_expr_or_assign` refactor — `[ PENDING ]`
 **Why:** `parser.py:574-662` has three mutually exclusive paths with manual save/restore. Highest-friction area for adding new assignment forms.
@@ -28,10 +24,8 @@
 **Why:** Currently just line + col. An "expected" field would make error messages much more useful.
 **Files:** `src/lpp/parser.py:6-10`
 
-### 5. Lexer dedent loop — `[ PENDING ]`
-**Why:** O(depth²) for large dedents. Trivial one-liner fix.
-**Files:** `src/lpp/lexer.py:68-70`
-**Fix:** Replace pop loop with single slice.
+### 5. Lexer dedent loop — `[ NOT AN ISSUE ]`
+Complexity is O(depth) per dedent sequence (each pop is O(1)), not O(depth²) as CONCERNS.md stated. No fix needed.
 
 ---
 
