@@ -1,6 +1,6 @@
 # L++ Work Priorities
 
-*Last updated: 2026-04-17 (session 3)*
+*Last updated: 2026-04-17 (session 4)*
 
 ---
 
@@ -25,6 +25,10 @@ Added `expected: str | None` field to `ParseError`; `expect()` now populates it 
 ### 5. Lexer dedent loop — `[ NOT AN ISSUE ]`
 Complexity is O(depth) per dedent sequence (each pop is O(1)), not O(depth²) as CONCERNS.md stated. No fix needed.
 
+### 6. Decorator support — `[ DONE ]`
+Position-based disambiguation: `@expr` before `def`/`class` = decorator, elsewhere = self-attr.
+Supports stacked, call-expression, and attribute decorators. Methods inside classes also supported.
+
 ---
 
 ## Low Priority / Deferred
@@ -32,5 +36,5 @@ Complexity is O(depth) per dedent sequence (each pop is O(1)), not O(depth²) as
 - **String interpolation re-parsing** — O(n) per string, negligible in practice. Measure first.
 - **Parser recursion depth** — only relevant for pathological input.
 - **Type annotations** — Tier 4, deferred by design.
-- **Decorators** — conflicts with `@` self-attr syntax, needs design work.
+- **Decorators** — `[ DONE ]` See item 6 above.
 - **Generator/async support** — Tier 6, deferred by design.

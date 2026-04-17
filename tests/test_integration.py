@@ -140,3 +140,39 @@ def test_unpack_roundtrip():
         p(b)
     """)
     assert run_lpp(src) == "1\n2"
+
+def test_staticmethod_decorator():
+    src = textwrap.dedent("""\
+        class MathUtils
+          @staticmethod
+          def add x y
+            x+y
+        p(MathUtils.add(3,4))
+    """)
+    assert run_lpp(src) == "7"
+
+def test_property_decorator():
+    src = textwrap.dedent("""\
+        class Circle
+          def @init r
+            @r=r
+          @property
+          def @area
+            3.14159*@r*@r
+        c=Circle(5)
+        p(round(c.area,2))
+    """)
+    assert run_lpp(src) == "78.54"
+
+def test_class_decorator():
+    src = textwrap.dedent("""\
+        use dataclasses:dataclass
+        @dataclass
+        class Point
+          def @init x y
+            @x=x
+            @y=y
+        pt=Point(1,2)
+        p(pt.x+pt.y)
+    """)
+    assert run_lpp(src) == "3"
