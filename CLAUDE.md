@@ -14,3 +14,7 @@ Update `priorities.md` before ending any session where work was done.
 ## Design decisions
 
 When brainstorming approaches, go with the recommended option unless the user explicitly redirects. Don't re-litigate choices that have already been approved.
+
+## Implementation decisions
+
+When executing plans, always go with the Subagent-Driven option. Also, either /compact or /clear context prior to execution.
