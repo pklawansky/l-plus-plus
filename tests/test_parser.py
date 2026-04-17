@@ -486,3 +486,10 @@ def test_is_decorator_context_does_not_advance_position():
     pos_before = p.pos
     p._is_decorator_context()
     assert p.pos == pos_before
+
+def test_is_decorator_context_true_for_call_decorator():
+    from lpp.lexer import Lexer
+    from lpp.parser import Parser
+    tokens = Lexer("@lru_cache(maxsize=128)\ndef fib n\n  n\n").tokenize()
+    p = Parser(tokens)
+    assert p._is_decorator_context() is True

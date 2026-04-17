@@ -51,10 +51,15 @@ class Parser:
             while self.peek_type() == TokenType.AT:
                 self.advance()  # consume @
                 depth = 0
-                while not (self.match(TokenType.NEWLINE, TokenType.EOF) and depth == 0):
-                    if self.peek_type() in (TokenType.LPAREN, TokenType.LBRACKET, TokenType.LBRACE):
+                while True:
+                    tt = self.peek_type()
+                    if tt == TokenType.EOF:
+                        break
+                    if tt == TokenType.NEWLINE and depth == 0:
+                        break
+                    if tt in (TokenType.LPAREN, TokenType.LBRACKET, TokenType.LBRACE):
                         depth += 1
-                    elif self.peek_type() in (TokenType.RPAREN, TokenType.RBRACKET, TokenType.RBRACE):
+                    elif tt in (TokenType.RPAREN, TokenType.RBRACKET, TokenType.RBRACE):
                         depth -= 1
                     self.advance()
                 if self.match(TokenType.NEWLINE):
