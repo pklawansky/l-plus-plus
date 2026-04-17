@@ -69,6 +69,17 @@ class Parser:
         finally:
             self.pos = save
 
+    def _collect_decorators(self) -> list:
+        decorators = []
+        while self.peek_type() == TokenType.AT:
+            self.advance()  # consume @
+            expr = self.parse_expression()
+            if self.match(TokenType.NEWLINE):
+                self.advance()
+            self.skip_newlines()
+            decorators.append(expr)
+        return decorators
+
     # --- String interpolation ---
 
     def _parse_string_literal(self, raw: str) -> StringLiteral:

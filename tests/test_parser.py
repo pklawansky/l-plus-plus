@@ -493,3 +493,41 @@ def test_is_decorator_context_true_for_call_decorator():
     tokens = Lexer("@lru_cache(maxsize=128)\ndef fib n\n  n\n").tokenize()
     p = Parser(tokens)
     assert p._is_decorator_context() is True
+
+def test_collect_single_decorator():
+    from lpp.lexer import Lexer
+    from lpp.parser import Parser
+    from lpp.ast_nodes import Name
+    tokens = Lexer("@staticmethod\ndef foo x\n  x\n").tokenize()
+    p = Parser(tokens)
+    decs = p._collect_decorators()
+    assert decs == [Name("staticmethod")]
+
+def test_collect_stacked_decorators():
+    from lpp.lexer import Lexer
+    from lpp.parser import Parser
+    from lpp.ast_nodes import Name
+    tokens = Lexer("@classmethod\n@cache\ndef bar cls\n  1\n").tokenize()
+    p = Parser(tokens)
+    decs = p._collect_decorators()
+    assert decs == [Name("classmethod"), Name("cache")]
+
+def test_collect_call_decorator():
+    from lpp.lexer import Lexer
+    from lpp.parser import Parser
+    from lpp.ast_nodes import Call, Name, NumberLiteral
+    tokens = Lexer("@lru_cache(maxsize=128)\ndef fib n\n  n\n").tokenize()
+    p = Parser(tokens)
+    decs = p._collect_decorators()
+    assert len(decs) == 1
+    assert isinstance(decs[0], Call)
+    assert decs[0].func == Name("lru_cache")
+
+def test_collect_decorators_advances_past_at_lines():
+    from lpp.lexer import Lexer
+    from lpp.parser import Parser
+    from lpp.tokens import TokenType
+    tokens = Lexer("@staticmethod\ndef foo x\n  x\n").tokenize()
+    p = Parser(tokens)
+    p._collect_decorators()
+    assert p.peek_type() == TokenType.DEF
