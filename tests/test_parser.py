@@ -248,6 +248,14 @@ def test_parse_error_has_line_and_col():
         assert e.col is not None
         assert e.col >= 1
 
+def test_parse_error_has_expected_field():
+    from lpp.parser import ParseError
+    try:
+        parse_prog("def\n  x\n")
+        assert False, "expected ParseError"
+    except ParseError as e:
+        assert e.expected == "IDENT"
+
 def test_parse_break():
     src = "for i in r(1)\n  break\n"
     node = first(src)

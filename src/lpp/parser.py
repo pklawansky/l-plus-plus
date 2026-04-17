@@ -4,10 +4,11 @@ from .lexer import Lexer
 from .ast_nodes import *
 
 class ParseError(Exception):
-    def __init__(self, message: str, line: int | None = None, col: int | None = None):
+    def __init__(self, message: str, line: int | None = None, col: int | None = None, expected: str | None = None):
         super().__init__(message)
         self.line = line
         self.col = col
+        self.expected = expected
 
 class Parser:
     def __init__(self, tokens: list[Token]):
@@ -32,7 +33,8 @@ class Parser:
         if tok.type != tt:
             raise ParseError(
                 f"expected {tt.name}, got {tok.type.name} ({tok.value!r})",
-                line=tok.line, col=tok.col
+                line=tok.line, col=tok.col,
+                expected=tt.name,
             )
         return tok
 
@@ -572,29 +574,14 @@ class Parser:
         return WithStatement(items, body)
 
     def _parse_expr_or_assign(self) -> Statement:
-        save = self.pos
-
-        # Path 1: @attr assignment / aug-assignment
+        # Path 1: @attr = / @attr op= (self-attribute assignment)
         if self.peek_type() == TokenType.AT:
-            self.advance()
-            attr = self.expect(TokenType.IDENT).value
-            AUG = {
-                TokenType.PLUSEQ: "+=", TokenType.MINUSEQ: "-=",
-                TokenType.STAREQ: "*=", TokenType.SLASHEQ: "/=",
-            }
-            if self.peek_type() in AUG:
-                op = AUG[self.advance().type]
-                value = self.parse_expression()
-                if self.match(TokenType.NEWLINE): self.advance()
-                return AugAssignment(f"self.{attr}", op, value)
-            if self.peek_type() == TokenType.EQ:
-                self.advance()
-                value = self.parse_expression()
-                if self.match(TokenType.NEWLINE): self.advance()
-                return Assignment(f"self.{attr}", value)
-            self.pos = save
+            stmt = self._try_parse_self_attr_assign()
+            if stmt is not None:
+                return stmt
+            # Fall through: @x used as a bare SelfAttr expression
 
-        # Path 2: Unpacking — (ident | *ident) (, (ident | *ident))+ =
+        # Path 2: ident,ident[,...] = (unpacking assignment)
         targets = self._try_parse_unpack_targets()
         if targets is not None:
             self.advance()  # skip =
@@ -602,8 +589,7 @@ class Parser:
             if self.match(TokenType.NEWLINE): self.advance()
             return UnpackAssignment(targets, value)
 
-        # Path 3: Full expression, then check operator
-        self.pos = save
+        # Path 3: expression, then check for assignment/aug-assignment/append
         expr = self.parse_expression()
         AUG = {
             TokenType.PLUSEQ: "+=", TokenType.MINUSEQ: "-=",
@@ -628,6 +614,33 @@ class Parser:
             return AppendStatement(expr, value)
         if self.match(TokenType.NEWLINE): self.advance()
         return ExprStatement(expr)
+
+    def _try_parse_self_attr_assign(self) -> Statement | None:
+        """Try to parse @attr = expr or @attr op= expr. Returns None if the
+        @ token is not followed by an assignment operator (bare SelfAttr read)."""
+        save = self.pos
+        try:
+            self.advance()  # consume @
+            attr = self.expect(TokenType.IDENT).value
+            AUG = {
+                TokenType.PLUSEQ: "+=", TokenType.MINUSEQ: "-=",
+                TokenType.STAREQ: "*=", TokenType.SLASHEQ: "/=",
+            }
+            if self.peek_type() in AUG:
+                op = AUG[self.advance().type]
+                value = self.parse_expression()
+                if self.match(TokenType.NEWLINE): self.advance()
+                return AugAssignment(f"self.{attr}", op, value)
+            if self.peek_type() == TokenType.EQ:
+                self.advance()
+                value = self.parse_expression()
+                if self.match(TokenType.NEWLINE): self.advance()
+                return Assignment(f"self.{attr}", value)
+            self.pos = save
+            return None
+        except ParseError:
+            self.pos = save
+            return None
 
     def _try_parse_unpack_targets(self) -> list[Expression] | None:
         """Try to parse a comma-separated target list followed by =.
