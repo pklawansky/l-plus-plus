@@ -1,6 +1,6 @@
 # L++ Work Priorities
 
-*Last updated: 2026-04-17 (session 2)*
+*Last updated: 2026-04-17 (session 3)*
 
 ---
 
@@ -12,17 +12,15 @@
 ### 2. Parser error coverage — `[ DONE ]`
 Added 11 error-path tests: unclosed paren/list/dict, missing def/if/while body, ternary missing else, lambda fallback behavior, incomplete unpack at statement level. 172/172 tests pass.
 
-### 3. `_parse_expr_or_assign` refactor — `[ PENDING ]`
-**Why:** `parser.py:574-662` has three mutually exclusive paths with manual save/restore. Highest-friction area for adding new assignment forms.
-**Done when:** Cleaner dispatch; all existing assignment tests pass; `@x+=1`, `d[k],a=...` edge cases covered.
+### 3. `_parse_expr_or_assign` refactor — `[ DONE ]`
+Extracted `_try_parse_self_attr_assign()` — Path 1 is now self-contained. Removed top-level `save`/reset and the redundant `self.pos = save` before Path 3. 173/173 tests pass.
 
 ---
 
 ## Medium Return
 
-### 4. ParseError context enrichment — `[ PENDING ]`
-**Why:** Currently just line + col. An "expected" field would make error messages much more useful.
-**Files:** `src/lpp/parser.py:6-10`
+### 4. ParseError context enrichment — `[ DONE ]`
+Added `expected: str | None` field to `ParseError`; `expect()` now populates it with the expected token type name. Tested via `test_parse_error_has_expected_field`.
 
 ### 5. Lexer dedent loop — `[ NOT AN ISSUE ]`
 Complexity is O(depth) per dedent sequence (each pop is O(1)), not O(depth²) as CONCERNS.md stated. No fix needed.
