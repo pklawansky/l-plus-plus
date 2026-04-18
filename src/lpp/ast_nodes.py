@@ -6,7 +6,8 @@ Expression = Union[
     "BinOp", "UnaryOp", "Call", "ZeroArgCall", "Pipeline",
     "Lambda", "Compose", "Name", "SelfAttr", "Attribute", "Subscript",
     "StringLiteral", "NumberLiteral", "ListLiteral", "DictLiteral",
-    "TernaryOp", "Spread", "ListComp", "DictComp", "Tuple", "Slice", "SetLiteral",
+    "TernaryOp", "Spread", "ListComp", "DictComp", "SetComp", "Tuple", "Slice", "SetLiteral",
+    "ChainedComparison",
 ]
 Statement = Union[
     "FunctionDef", "ClassDef", "Assignment", "AugAssignment",
@@ -15,7 +16,8 @@ Statement = Union[
     "AppendStatement", "ExprStatement",
     "BreakStatement", "ContinueStatement", "RaiseStatement",
     "WithStatement", "GlobalStatement", "NonlocalStatement",
-    "UnpackAssignment", "AssertStatement", "DelStatement",
+    "UnpackAssignment", "AssertStatement", "DelStatement", "PassStatement",
+    "YieldStatement",
 ]
 
 @dataclass
@@ -79,6 +81,7 @@ class ForStatement:
 class DoStatement:
     condition: Expression
     body: list[Statement]
+    else_body: list[Statement] | None = None
 
 @dataclass
 class TryStatement:
@@ -88,7 +91,7 @@ class TryStatement:
 
 @dataclass
 class ErrHandler:
-    exc_type: str | None
+    exc_type: str | list[str] | None   # None = bare except; list = (T1, T2, ...)
     name: str | None
     body: list[Statement]
 
@@ -154,6 +157,15 @@ class AssertStatement:
 @dataclass
 class DelStatement:
     targets: list[Expression]
+
+@dataclass
+class PassStatement:
+    pass
+
+@dataclass
+class YieldStatement:
+    value: "Expression | None"   # None = bare yield
+    is_from: bool = False        # True = yield from
 
 # --- Expressions ---
 
@@ -256,10 +268,22 @@ class DictComp:
     condition: Expression | None = None
 
 @dataclass
+class SetComp:
+    elt: Expression
+    targets: list[str]
+    iter: Expression
+    condition: Expression | None = None
+
+@dataclass
 class TernaryOp:
     value: Expression
     condition: Expression
     else_value: Expression
+
+@dataclass
+class ChainedComparison:
+    operands: list[Expression]   # len == len(ops) + 1
+    ops: list[str]
 
 @dataclass
 class Spread:

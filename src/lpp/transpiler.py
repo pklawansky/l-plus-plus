@@ -37,9 +37,12 @@ class Transpiler:
                 return self._if(node, depth)
             case ForStatement():
                 return self._for(node, depth)
-            case DoStatement(condition, body):
+            case DoStatement(condition, body, else_body):
                 lines = [f"{pad}while {self._expr(condition)}:"]
                 lines += [self._stmt(s, depth + 1) for s in body]
+                if else_body:
+                    lines.append(f"{pad}else:")
+                    lines += [self._stmt(s, depth + 1) for s in else_body]
                 return "\n".join(lines)
             case TryStatement():
                 return self._try(node, depth)
@@ -81,6 +84,13 @@ class Transpiler:
                 return "\n".join(lines)
             case ExprStatement(expr):
                 return f"{pad}{self._expr(expr)}"
+            case PassStatement():
+                return f"{pad}pass"
+            case YieldStatement(value, is_from):
+                if value is None:
+                    return f"{pad}yield"
+                keyword = "yield from" if is_from else "yield"
+                return f"{pad}{keyword} {self._expr(value)}"
             case _:
                 raise NotImplementedError(f"Unknown statement: {type(node)}")
 
@@ -174,10 +184,14 @@ class Transpiler:
         lines = [f"{pad}try:"]
         lines += [self._stmt(s, depth + 1) for s in node.body]
         for h in node.handlers:
-            if h.exc_type and h.name:
-                lines.append(f"{pad}except {h.exc_type} as {h.name}:")
-            elif h.exc_type:
-                lines.append(f"{pad}except {h.exc_type}:")
+            if isinstance(h.exc_type, list):
+                exc_str = f"({', '.join(h.exc_type)})"
+            else:
+                exc_str = h.exc_type
+            if exc_str and h.name:
+                lines.append(f"{pad}except {exc_str} as {h.name}:")
+            elif exc_str:
+                lines.append(f"{pad}except {exc_str}:")
             else:
                 lines.append(f"{pad}except:")
             lines += [self._stmt(s, depth + 1) for s in h.body]
@@ -217,6 +231,11 @@ class Transpiler:
                 if step is not None:
                     return f"{s}:{e}:{self._expr(step)}"
                 return f"{s}:{e}"
+            case ChainedComparison(operands, ops):
+                parts = [self._expr(operands[0])]
+                for op, operand in zip(ops, operands[1:]):
+                    parts += [op, self._expr(operand)]
+                return " ".join(parts)
             case BinOp(left, op, right):
                 return f"{self._expr(left)} {op} {self._expr(right)}"
             case UnaryOp(op, operand):
@@ -251,6 +270,10 @@ class Transpiler:
                 target_str = ", ".join(targets)
                 cond = f" if {self._expr(condition)}" if condition else ""
                 return "{" + f"{self._expr(key)}: {self._expr(value)} for {target_str} in {self._expr(iter)}{cond}" + "}"
+            case SetComp(elt, targets, iter, condition):
+                target_str = ", ".join(targets)
+                cond = f" if {self._expr(condition)}" if condition else ""
+                return "{" + f"{self._expr(elt)} for {target_str} in {self._expr(iter)}{cond}" + "}"
             case Spread(value):
                 return f"*{self._expr(value)}"
             case _:

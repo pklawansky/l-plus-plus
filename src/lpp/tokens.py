@@ -31,6 +31,8 @@ class TokenType(Enum):
     DOUBLESLASH = auto()
     ASSERT = auto()
     DEL = auto()
+    PASS = auto()
+    YIELD = auto()
     # Literals
     NUMBER = auto()
     STRING = auto()
@@ -104,6 +106,8 @@ KEYWORDS: dict[str, TokenType] = {
     "not": TokenType.NOT,
     "assert": TokenType.ASSERT,
     "del": TokenType.DEL,
+    "pass": TokenType.PASS,
+    "yield": TokenType.YIELD,
 }
 
 @dataclass

@@ -206,28 +206,33 @@ class Parser:
             TokenType.LT: "<", TokenType.GT: ">",
             TokenType.LTE: "<=", TokenType.GTE: ">=",
         }
-        if self.peek_type() in OPS:
-            op = OPS[self.advance().type]
-            right = self._parse_additive()
-            return BinOp(left, op, right)
-        if self.peek_type() == TokenType.IN:
-            self.advance()
-            right = self._parse_additive()
-            return BinOp(left, "in", right)
-        if self.peek_type() == TokenType.NOT:
-            self.advance()
-            self.expect(TokenType.IN)
-            right = self._parse_additive()
-            return BinOp(left, "not in", right)
-        if self.peek_type() == TokenType.IS:
-            self.advance()
-            if self.peek_type() == TokenType.NOT:
+        operands = [left]
+        ops = []
+        while True:
+            if self.peek_type() in OPS:
+                ops.append(OPS[self.advance().type])
+            elif self.peek_type() == TokenType.IN:
                 self.advance()
-                right = self._parse_additive()
-                return BinOp(left, "is not", right)
-            right = self._parse_additive()
-            return BinOp(left, "is", right)
-        return left
+                ops.append("in")
+            elif self.peek_type() == TokenType.NOT:
+                self.advance()
+                self.expect(TokenType.IN)
+                ops.append("not in")
+            elif self.peek_type() == TokenType.IS:
+                self.advance()
+                if self.peek_type() == TokenType.NOT:
+                    self.advance()
+                    ops.append("is not")
+                else:
+                    ops.append("is")
+            else:
+                break
+            operands.append(self._parse_additive())
+        if not ops:
+            return left
+        if len(ops) == 1:
+            return BinOp(operands[0], ops[0], operands[1])
+        return ChainedComparison(operands, ops)
 
     def _parse_additive(self) -> Expression:
         left = self._parse_multiplicative()
@@ -387,6 +392,10 @@ class Parser:
                     pairs.append((k, v))
                 self.expect(TokenType.RBRACE)
                 return DictLiteral(pairs)
+            if self.match(TokenType.FOR):
+                targets, iterable, condition = self._parse_comp_clauses()
+                self.expect(TokenType.RBRACE)
+                return SetComp(first, targets, iterable, condition)
             elements = [first]
             while self.match(TokenType.COMMA):
                 self.advance()
@@ -457,6 +466,8 @@ class Parser:
         if tt == TokenType.WITH:     return self._parse_with()
         if tt == TokenType.ASSERT:   return self._parse_assert()
         if tt == TokenType.DEL:      return self._parse_del()
+        if tt == TokenType.PASS:     return self._parse_pass()
+        if tt == TokenType.YIELD:    return self._parse_yield()
 
         # Could be assignment, aug-assignment, append, or expression statement
         return self._parse_expr_or_assign()
@@ -539,6 +550,23 @@ class Parser:
                 elifs.append((cond, self._parse_block()))
         return IfStatement(condition, body, elifs)
 
+    def _parse_yield(self) -> YieldStatement:
+        self.expect(TokenType.YIELD)
+        is_from = False
+        if self.match(TokenType.FROM):
+            self.advance()
+            is_from = True
+        value = None
+        if not self.match(TokenType.NEWLINE, TokenType.EOF):
+            value = self.parse_expression()
+        if self.match(TokenType.NEWLINE): self.advance()
+        return YieldStatement(value, is_from)
+
+    def _parse_pass(self) -> PassStatement:
+        self.expect(TokenType.PASS)
+        if self.match(TokenType.NEWLINE): self.advance()
+        return PassStatement()
+
     def _parse_assert(self) -> AssertStatement:
         self.expect(TokenType.ASSERT)
         test = self.parse_expression()
@@ -595,7 +623,13 @@ class Parser:
         condition = self.parse_expression()
         self.skip_newlines()
         body = self._parse_block()
-        return DoStatement(condition, body)
+        else_body = None
+        self.skip_newlines()
+        if self.match(TokenType.ELSE):
+            self.advance()
+            self.skip_newlines()
+            else_body = self._parse_block()
+        return DoStatement(condition, body, else_body)
 
     def _parse_try(self) -> TryStatement:
         self.expect(TokenType.TRY)
@@ -606,9 +640,20 @@ class Parser:
             self.advance()
             exc_type = None
             name = None
-            if self.match(TokenType.IDENT):
+            if self.match(TokenType.LPAREN):
+                self.advance()
+                types = [self.expect(TokenType.IDENT).value]
+                while self.match(TokenType.COMMA):
+                    self.advance()
+                    types.append(self.expect(TokenType.IDENT).value)
+                self.expect(TokenType.RPAREN)
+                exc_type = types
+            elif self.match(TokenType.IDENT):
                 exc_type = self.advance().value
-            if self.match(TokenType.IDENT):
+            if self.match(TokenType.AS):
+                self.advance()
+                name = self.expect(TokenType.IDENT).value
+            elif self.match(TokenType.IDENT):
                 name = self.advance().value
             self.skip_newlines()
             hbody = self._parse_block()

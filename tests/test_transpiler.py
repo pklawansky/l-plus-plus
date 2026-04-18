@@ -426,3 +426,98 @@ def test_is_in_if():
 def test_not_in_in_if():
     result = py("if x not in col\n  x=1\n")
     assert "if x not in col:" in result
+
+# pass statement (item 18)
+def test_pass_in_function_body():
+    result = py("def f\n  pass\n")
+    assert result == "def f():\n    pass"
+
+def test_pass_in_except_body():
+    src = "try\n  risky!\nexcept SomeError\n  pass\n"
+    result = py(src)
+    assert "except SomeError:" in result
+    assert "pass" in result
+    assert "return pass" not in result
+
+def test_pass_in_if_body():
+    src = "if cond\n  pass\nelse\n  p(\"no\")\n"
+    result = py(src)
+    assert "pass" in result
+    assert "return pass" not in result
+
+# multiple exception types per except (item 19)
+def test_except_tuple_types():
+    src = "try\n  x=1\nexcept (TypeError,ValueError) as e\n  p(e)\n"
+    result = py(src)
+    assert "except (TypeError, ValueError) as e:" in result
+
+def test_except_tuple_types_no_binding():
+    src = "try\n  x=1\nexcept (TypeError,ValueError)\n  p(\"err\")\n"
+    result = py(src)
+    assert "except (TypeError, ValueError):" in result
+
+# set comprehensions (item 20)
+def test_set_comp_basic():
+    assert py("{x*2 for x in r(5)}\n") == "{x * 2 for x in r(5)}"
+
+def test_set_comp_with_if():
+    assert py("{x for x in lst if x>0}\n") == "{x for x in lst if x > 0}"
+
+def test_set_comp_in_assignment():
+    assert py("s={x*x for x in r(5)}\n") == "s = {x * x for x in r(5)}"
+
+# chained comparisons (item 21)
+def test_chained_lt():
+    assert py("a < b < c\n") == "a < b < c"
+
+def test_chained_mixed():
+    assert py("0 <= x < n\n") == "0 <= x < n"
+
+def test_chained_three_ops():
+    assert py("a < b < c < d\n") == "a < b < c < d"
+
+def test_single_comparison_unchanged():
+    assert py("x < 5\n") == "x < 5"
+
+def test_chained_in_if():
+    result = py("if 0 <= x < n\n  p(x)\n")
+    assert "if 0 <= x < n:" in result
+
+# while/else (item 22)
+def test_while_else():
+    src = "while cond\n  p(1)\nelse\n  p(0)\n"
+    result = py(src)
+    assert "while cond:" in result
+    assert "else:" in result
+    assert "p(0)" in result
+
+def test_while_no_else_unchanged():
+    result = py("while x>0\n  x-=1\n")
+    assert "while x > 0:" in result
+    assert "else" not in result
+
+# yield / generators (item 23)
+def test_yield_value():
+    result = py("def gen n\n  yield n\n")
+    assert "yield n" in result
+    assert "return yield" not in result
+
+def test_yield_bare():
+    result = py("def gen\n  yield\n")
+    assert "yield" in result
+    assert "return yield" not in result
+
+def test_yield_from():
+    result = py("def gen it\n  yield from it\n")
+    assert "yield from it" in result
+    assert "return yield" not in result
+
+def test_yield_not_last():
+    result = py("def gen n\n  yield n\n  yield n*2\n")
+    assert result.count("yield") == 2
+    assert "return yield" not in result
+
+def test_yield_with_other_stmts():
+    result = py("def countdown n\n  while n>0\n    yield n\n    n-=1\n")
+    assert "yield n" in result
+    assert "return yield" not in result

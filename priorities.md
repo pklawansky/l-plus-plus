@@ -71,10 +71,30 @@ Changed `ClassDef.base: str | None` to `bases: list[str]`; parser collects comma
 
 ---
 
+## Gaps Found — static analysis (session 7)
+
+### 18. `pass` in function body — `[ DONE ]`
+Added `PASS` keyword and `PassStatement` AST node; `_parse_pass` dispatched from statement parser; transpiler emits `pass` directly (no implicit-return promotion). 3 new tests, 274/274 pass.
+
+### 19. Multiple exception types per `except` clause — `[ DONE ]`
+`_parse_try` now accepts `LPAREN ident, ident... RPAREN` for `exc_type`; `ErrHandler.exc_type` widened to `str | list[str] | None`; transpiler emits `(T1, T2)` when list. 2 new tests, 274/274 pass.
+
+### 20. Set comprehensions — `[ DONE ]`
+Added `SetComp` AST node; `_parse_primary` peeks for `FOR` after first `{`-expression (no colon); transpiler emits `{elt for targets in iter (if cond)?}`. 3 new tests, 274/274 pass.
+
+### 21. Chained comparisons — `[ DONE ]`
+Rewrote `_parse_comparison` as a collecting loop; yields `BinOp` for single op, `ChainedComparison(operands, ops)` for chains; transpiler interleaves. 5 new tests, 281/281 pass.
+
+### 22. `while/else` — `[ DONE ]`
+Added `else_body` field to `DoStatement`; `_parse_while` checks for `ELSE` after body; transpiler emits `else:` block. 2 new tests, 281/281 pass.
+
+---
+
 ## Low Priority / Deferred
 
 - **String interpolation re-parsing** — O(n) per string, negligible in practice. Measure first.
 - **Parser recursion depth** — only relevant for pathological input.
 - **Type annotations** — Tier 4, deferred by design.
-- **Generator/async support** — Tier 6, deferred by design.
+- **`yield` / generators** — `[ DONE ]` Added `YIELD` keyword, `YieldStatement(value, is_from)` AST node, `_parse_yield` (handles bare `yield`, `yield expr`, `yield from iter`); implicit-return suppressed. 5 new tests, 286/286 pass.
+- **`async`/`await`** — Tier 6, deferred by design (changes `def` semantics, requires `async for`/`async with`).
 - **Walrus operator `:=`** — niche; `n:=expr` conflicts with existing colon use.
