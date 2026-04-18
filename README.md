@@ -43,15 +43,45 @@ This installs the `lpp` CLI entry point.
 
 ## CLI Usage
 
+### Single file
+
 ```sh
 # Print transpiled Python to stdout
 lpp program.lpp
 
+# Write to a file
+lpp program.lpp -o program.py
+
 # Run immediately
 lpp program.lpp --run
 
-# Write Python output to a file
-lpp program.lpp -o program.py
+# Validate only (exit 0 = clean, exit 1 = errors) — useful for CI
+lpp program.lpp --check
+```
+
+### Directory
+
+```sh
+# Compile all .lpp files under src/ into out/ (mirrors directory structure)
+lpp src/ -o out/
+
+# Validate all .lpp files in a directory
+lpp src/ --check
+```
+
+### Watch mode
+
+Recompiles on every file save. Uses stdlib polling — no extra dependencies.
+
+```sh
+lpp watch src/ -o out/
+lpp watch program.lpp -o .
+```
+
+### Version
+
+```sh
+lpp --version
 ```
 
 Errors include a source location and caret:
