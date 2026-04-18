@@ -1,10 +1,14 @@
 import sys
 import os
+import re as _re
 import argparse
 import time
+import traceback
 from .lexer import LexError
 from .parser import ParseError
 from . import compile_lpp, __version__
+
+_LPP_MARKER = _re.compile(r"# lpp:(\d+)")
 
 
 def _format_error(label: str, err: Exception, source: str) -> str:
@@ -119,11 +123,10 @@ def _build_line_map(python_src: str) -> dict[int, int]:
 
     Lines between markers inherit the nearest preceding marker's lpp line.
     """
-    import re
     result: dict[int, int] = {}
     current: int | None = None
     for py_lineno, src_line in enumerate(python_src.splitlines(), 1):
-        m = re.search(r"# lpp:(\d+)", src_line)
+        m = _LPP_MARKER.search(src_line)
         if m:
             current = int(m.group(1))
         if current is not None:
@@ -133,16 +136,21 @@ def _build_line_map(python_src: str) -> dict[int, int]:
 
 def _install_run_hook(lpp_path: str, lpp_src: str, line_map: dict[int, int]) -> None:
     """Replace sys.excepthook with one that remaps tracebacks to .lpp lines."""
-    import traceback as tb_mod
     lpp_lines = lpp_src.splitlines()
 
     def hook(exc_type, exc_value, exc_tb):
-        frames = tb_mod.extract_tb(exc_tb)
+        if issubclass(exc_type, (SystemExit, KeyboardInterrupt)):
+            sys.__excepthook__(exc_type, exc_value, exc_tb)
+            return
+        if exc_tb is None:
+            sys.stderr.write(f"{exc_type.__name__}: {exc_value}\n")
+            return
+        frames = traceback.extract_tb(exc_tb)
         sys.stderr.write("Traceback (most recent call last):\n")
         for frame in frames:
             if frame.filename == lpp_path:
                 lpp_lineno = line_map.get(frame.lineno, frame.lineno)
-                sys.stderr.write(f'  File "{lpp_path}", line {lpp_lineno}\n')
+                sys.stderr.write(f'  File "{lpp_path}", line {lpp_lineno}, in {frame.name}\n')
                 if 0 < lpp_lineno <= len(lpp_lines):
                     sys.stderr.write(f"    {lpp_lines[lpp_lineno - 1].strip()}\n")
             else:
@@ -220,9 +228,10 @@ def main() -> None:
     if args.check:
         pass  # compiled successfully, nothing to emit
     elif args.run:
+        lpp_abs = os.path.abspath(args.file)
         line_map = _build_line_map(python_src)
-        _install_run_hook(args.file, source, line_map)
-        exec(compile(python_src, args.file, "exec"), {"__name__": "__main__"})
+        _install_run_hook(lpp_abs, source, line_map)
+        exec(compile(python_src, lpp_abs, "exec"), {"__name__": "__main__"})
     elif args.output:
         with open(args.output, "w") as f:
             f.write(python_src)
