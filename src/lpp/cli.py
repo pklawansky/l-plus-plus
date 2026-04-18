@@ -33,6 +33,8 @@ def main() -> None:
     parser.add_argument("file", help=".lpp source file")
     parser.add_argument("-o", "--output", help="write Python output to file instead of stdout")
     parser.add_argument("--run", action="store_true", help="execute transpiled Python immediately")
+    parser.add_argument("--check", action="store_true",
+                        help="validate only — parse without emitting output (exits 1 on error)")
     args = parser.parse_args()
 
     try:
@@ -51,7 +53,9 @@ def main() -> None:
         print(f"lpp: internal error: {e}", file=sys.stderr)
         sys.exit(1)
 
-    if args.run:
+    if args.check:
+        pass  # compiled successfully, nothing to emit
+    elif args.run:
         exec(compile(python_src, args.file, "exec"), {"__name__": "__main__"})
     elif args.output:
         with open(args.output, "w") as f:
