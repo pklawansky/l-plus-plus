@@ -90,11 +90,48 @@ Added `else_body` field to `DoStatement`; `_parse_while` checks for `ELSE` after
 
 ---
 
+## Enterprise Packaging — Layer 1: Distribution & CLI
+
+Plan: `docs/superpowers/plans/2026-04-18-enterprise-packaging.md`
+
+### 23. PyPI metadata + `__version__` — `[ TODO ]`
+Add description, authors, license, classifiers, and URLs to `pyproject.toml`. Expose `__version__` via `importlib.metadata` in `__init__.py`.
+
+### 24. `--version` flag — `[ TODO ]`
+`lpp --version` prints `lpp <version>`.
+
+### 25. `--check` flag — `[ DONE ]`
+Added `--check` argument to `cli.py`; short-circuits output after successful parse (`pass`). Existing error handler already exits 1 on `LexError`/`ParseError`. 3 new tests, 290/290 pass.
+
+### 26. Directory compilation — `[ TODO ]`
+`lpp src/ -o out/` compiles all `.lpp` files recursively, mirroring directory structure. Reports all errors, exits 1 if any file failed.
+
+### 27. `watch` subcommand — `[ TODO ]`
+`lpp watch <file|dir> -o <outdir>` polls for `mtime` changes every 500 ms and recompiles on save. Stdlib only, no new dependencies.
+
+---
+
+## Enterprise Packaging — Layer 2: DX (deferred)
+
+- **Source maps** — thread line numbers through AST and transpiler so tracebacks point to `.lpp` lines. High value, touches every AST node.
+- **Richer error output** — formatted errors with source snippet and caret (partially done in `cli.py`; full Rust-style context pending).
+- **Watch mode** — covered in Layer 1.
+
+## Enterprise Packaging — Layer 3: Type Annotations (deferred)
+
+- **Type annotation syntax** — `x: int`, `def f(x: int) -> str:` require a design decision since `:` conflicts with class-base syntax. Candidate: `x::int`.
+
+## Enterprise Packaging — Layer 4: Editor Tooling (deferred)
+
+- **TextMate grammar** — syntax highlighting for VS Code / Sublime / GitHub.
+- **LSP** — go-to-definition and inline errors.
+
+---
+
 ## Low Priority / Deferred
 
 - **String interpolation re-parsing** — O(n) per string, negligible in practice. Measure first.
 - **Parser recursion depth** — only relevant for pathological input.
-- **Type annotations** — Tier 4, deferred by design.
 - **`yield` / generators** — `[ DONE ]` Added `YIELD` keyword, `YieldStatement(value, is_from)` AST node, `_parse_yield` (handles bare `yield`, `yield expr`, `yield from iter`); implicit-return suppressed. 5 new tests, 286/286 pass.
 - **`async`/`await`** — Tier 6, deferred by design (changes `def` semantics, requires `async for`/`async with`).
 - **Walrus operator `:=`** — niche; `n:=expr` conflicts with existing colon use.
