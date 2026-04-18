@@ -71,11 +71,14 @@ lpp src/ --check
 
 ### Watch mode
 
-Recompiles on every file save. Uses stdlib polling — no extra dependencies.
+Recompiles on every file save. Uses stdlib polling — no extra dependencies. `-o` is required.
 
 ```sh
 lpp watch src/ -o out/
 lpp watch program.lpp -o .
+
+# Custom poll interval (default: 0.5s)
+lpp watch src/ -o out/ --interval 1.0
 ```
 
 ### Version
