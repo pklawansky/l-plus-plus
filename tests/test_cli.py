@@ -9,7 +9,9 @@ def lpp(*args):
     return result.returncode, result.stdout.strip(), result.stderr.strip()
 
 def test_version_flag():
-    code, out, _ = lpp("--version")
+    code, out, err = lpp("--version")
     assert code == 0
+    assert err == ""
     assert out.startswith("lpp ")
     assert "." in out  # e.g. "lpp 0.2.0"
+
