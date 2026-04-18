@@ -86,7 +86,8 @@ def test_dir_compile_exits_one_on_any_error():
         assert "bad.lpp" in err
 
 
-import threading, time
+import time
+
 
 def test_watch_compiles_on_change():
     with tempfile.TemporaryDirectory() as src_dir, \

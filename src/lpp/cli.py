@@ -118,10 +118,6 @@ def main() -> None:
     # subcommand choices, so we inspect argv directly.
     argv = sys.argv[1:]
 
-    if argv and argv[0] == "--version":
-        print(f"lpp {__version__}")
-        return
-
     if argv and argv[0] == "watch":
         watch_p = argparse.ArgumentParser(prog="lpp watch",
                                           description="watch files and recompile on change")
