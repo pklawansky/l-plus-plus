@@ -6,7 +6,7 @@ Expression = Union[
     "BinOp", "UnaryOp", "Call", "ZeroArgCall", "Pipeline",
     "Lambda", "Compose", "Name", "SelfAttr", "Attribute", "Subscript",
     "StringLiteral", "NumberLiteral", "ListLiteral", "DictLiteral",
-    "TernaryOp", "Spread",
+    "TernaryOp", "Spread", "ListComp", "DictComp", "Tuple", "Slice", "SetLiteral",
 ]
 Statement = Union[
     "FunctionDef", "ClassDef", "Assignment", "AugAssignment",
@@ -15,7 +15,7 @@ Statement = Union[
     "AppendStatement", "ExprStatement",
     "BreakStatement", "ContinueStatement", "RaiseStatement",
     "WithStatement", "GlobalStatement", "NonlocalStatement",
-    "UnpackAssignment",
+    "UnpackAssignment", "AssertStatement", "DelStatement",
 ]
 
 @dataclass
@@ -36,11 +36,12 @@ class FunctionDef:
 class Param:
     name: str
     default: Expression | None = None
+    kind: str = "pos"  # "pos", "var" (*args), "kw" (**kwargs)
 
 @dataclass
 class ClassDef:
     name: str
-    base: str | None
+    bases: list[str]
     body: list[FunctionDef]
     decorators: list = field(default_factory=list)
 
@@ -72,6 +73,7 @@ class ForStatement:
     targets: list[str]
     iterable: Expression
     body: list[Statement]
+    else_body: list[Statement] | None = None
 
 @dataclass
 class DoStatement:
@@ -144,6 +146,15 @@ class UnpackAssignment:
     targets: list[Expression]   # Name("a") for plain names, Spread(Name("b")) for *b
     value: Expression
 
+@dataclass
+class AssertStatement:
+    test: Expression
+    msg: Expression | None = None
+
+@dataclass
+class DelStatement:
+    targets: list[Expression]
+
 # --- Expressions ---
 
 @dataclass
@@ -200,6 +211,12 @@ class Subscript:
     key: Expression
 
 @dataclass
+class Slice:
+    start: Expression | None
+    stop: Expression | None
+    step: Expression | None = None
+
+@dataclass
 class StringLiteral:
     parts: list[str | Expression]   # alternating raw str and Expression
 
@@ -214,6 +231,29 @@ class ListLiteral:
 @dataclass
 class DictLiteral:
     pairs: list[tuple[Expression, Expression]]
+
+@dataclass
+class SetLiteral:
+    elements: list[Expression]
+
+@dataclass
+class Tuple:
+    elements: list[Expression]
+
+@dataclass
+class ListComp:
+    elt: Expression
+    targets: list[str]
+    iter: Expression
+    condition: Expression | None = None
+
+@dataclass
+class DictComp:
+    key: Expression
+    value: Expression
+    targets: list[str]
+    iter: Expression
+    condition: Expression | None = None
 
 @dataclass
 class TernaryOp:

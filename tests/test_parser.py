@@ -439,13 +439,10 @@ def test_lambda_multi_param_no_body_falls_back():
     node = parse_expr("x,y->")
     assert node == Name("x")
 
-def test_incomplete_unpack_at_stmt_level_raises():
-    # `a,b` with no `=` at statement level: _try_parse_unpack_targets resets
-    # (no = found), Path 3 parses `a` as ExprStatement, then the stray `,b`
-    # causes ParseError on the next statement. This is a known limitation.
-    from lpp.parser import ParseError
-    with pytest.raises(ParseError):
-        parse_prog("a,b\n")
+def test_tuple_at_stmt_level():
+    node = first("a,b\n")
+    assert isinstance(node, ExprStatement)
+    assert node.expr == Tuple([Name("a"), Name("b")])
 
 def test_ternary_missing_else_raises():
     from lpp.parser import ParseError
@@ -466,6 +463,170 @@ def test_if_missing_body_raises():
     from lpp.parser import ParseError
     with pytest.raises(ParseError):
         parse_prog("if x\n")
+
+# is / not in operators
+# multiple inheritance
+def test_parse_multi_inherit():
+    node = first("class Foo:Bar,Baz\n  def @init\n    42\n")
+    assert isinstance(node, ClassDef)
+    assert node.bases == ["Bar", "Baz"]
+
+def test_parse_single_inherit_still_works():
+    node = first("class Dog:Animal\n  def @bark\n    42\n")
+    assert node.bases == ["Animal"]
+
+# for/else
+def test_parse_for_else():
+    src = "for i in r(3)\n  p(i)\nelse\n  p(0)\n"
+    node = first(src)
+    assert isinstance(node, ForStatement)
+    assert node.else_body is not None
+    assert len(node.else_body) == 1
+
+# set literals
+def test_parse_set_literal():
+    result = parse_expr("{1,2,3}")
+    assert isinstance(result, SetLiteral)
+    assert result.elements == [NumberLiteral(1), NumberLiteral(2), NumberLiteral(3)]
+
+def test_parse_set_single():
+    result = parse_expr("{42}")
+    assert isinstance(result, SetLiteral)
+
+# %= augmented assignment
+def test_parse_modulo_assign():
+    node = first("x%=3\n")
+    assert isinstance(node, AugAssignment)
+    assert node.op == "%="
+    assert node.value == NumberLiteral(3)
+
+# assert / del
+def test_parse_assert():
+    node = first("assert x==1\n")
+    assert isinstance(node, AssertStatement)
+    assert node.test == BinOp(Name("x"), "==", NumberLiteral(1))
+    assert node.msg is None
+
+def test_parse_assert_with_msg():
+    node = first('assert x==1,"fail"\n')
+    assert isinstance(node, AssertStatement)
+    assert node.msg == StringLiteral(["fail"])
+
+def test_parse_del():
+    node = first("del x\n")
+    assert isinstance(node, DelStatement)
+    assert node.targets == [Name("x")]
+
+def test_parse_del_multi():
+    node = first("del x,y\n")
+    assert isinstance(node, DelStatement)
+    assert node.targets == [Name("x"), Name("y")]
+
+# slice notation
+def test_parse_slice_basic():
+    result = parse_expr("lst[0:n]")
+    assert result == Subscript(Name("lst"), Slice(NumberLiteral(0), Name("n"), None))
+
+def test_parse_slice_step():
+    result = parse_expr("lst[::2]")
+    assert result == Subscript(Name("lst"), Slice(None, None, NumberLiteral(2)))
+
+def test_parse_slice_open_end():
+    result = parse_expr("lst[1:]")
+    assert result == Subscript(Name("lst"), Slice(NumberLiteral(1), None, None))
+
+def test_parse_slice_open_start():
+    result = parse_expr("lst[:n]")
+    assert result == Subscript(Name("lst"), Slice(None, Name("n"), None))
+
+def test_parse_slice_full():
+    result = parse_expr("lst[1:5:2]")
+    assert result == Subscript(Name("lst"), Slice(NumberLiteral(1), NumberLiteral(5), NumberLiteral(2)))
+
+# *args / **kwargs in function params
+def test_parse_params_star_args():
+    node = first("def f *args\n  args\n")
+    assert isinstance(node, FunctionDef)
+    assert node.params == [Param("args", kind="var")]
+
+def test_parse_params_kwargs():
+    node = first("def f **kwargs\n  kwargs\n")
+    assert node.params == [Param("kwargs", kind="kw")]
+
+def test_parse_params_mixed():
+    node = first("def f x *args **kwargs\n  x\n")
+    assert node.params == [Param("x"), Param("args", kind="var"), Param("kwargs", kind="kw")]
+
+# tuple literals / multi-value return
+def test_parse_return_tuple():
+    node = first("return a, b\n")
+    assert isinstance(node, RetStatement)
+    assert node.value == Tuple([Name("a"), Name("b")])
+
+def test_parse_assign_tuple_rhs():
+    node = first("x=1,2,3\n")
+    assert isinstance(node, Assignment)
+    assert node.value == Tuple([NumberLiteral(1), NumberLiteral(2), NumberLiteral(3)])
+
+def test_parse_tuple_expr_stmt():
+    node = first("a,b\n")
+    assert isinstance(node, ExprStatement)
+    assert node.expr == Tuple([Name("a"), Name("b")])
+
+# list / dict comprehensions
+def test_parse_list_comp():
+    result = parse_expr("[x*x for x in lst]")
+    assert isinstance(result, ListComp)
+    assert result.elt == BinOp(Name("x"), "*", Name("x"))
+    assert result.targets == ["x"]
+    assert result.iter == Name("lst")
+    assert result.condition is None
+
+def test_parse_list_comp_with_if():
+    result = parse_expr("[x for x in lst if x>0]")
+    assert isinstance(result, ListComp)
+    assert result.condition == BinOp(Name("x"), ">", NumberLiteral(0))
+
+def test_parse_list_comp_multi_target():
+    result = parse_expr("[k for k,v in pairs]")
+    assert isinstance(result, ListComp)
+    assert result.targets == ["k", "v"]
+
+def test_parse_dict_comp():
+    result = parse_expr("{k: v for k,v in pairs}")
+    assert isinstance(result, DictComp)
+    assert result.key == Name("k")
+    assert result.value == Name("v")
+    assert result.targets == ["k", "v"]
+    assert result.iter == Name("pairs")
+    assert result.condition is None
+
+def test_parse_dict_comp_with_if():
+    result = parse_expr("{k: v for k,v in pairs if k>0}")
+    assert isinstance(result, DictComp)
+    assert result.condition == BinOp(Name("k"), ">", NumberLiteral(0))
+
+# ** and //
+def test_parse_power():
+    assert parse_expr("a**b") == BinOp(Name("a"), "**", Name("b"))
+
+def test_parse_floordiv():
+    assert parse_expr("a//b") == BinOp(Name("a"), "//", Name("b"))
+
+def test_parse_power_precedence():
+    # a*b**c should be a*(b**c), not (a*b)**c
+    result = parse_expr("a*b**c")
+    assert result == BinOp(Name("a"), "*", BinOp(Name("b"), "**", Name("c")))
+
+# is / not in operators
+def test_parse_is():
+    assert parse_expr("x is None") == BinOp(Name("x"), "is", Name("None"))
+
+def test_parse_not_in():
+    assert parse_expr("x not in col") == BinOp(Name("x"), "not in", Name("col"))
+
+def test_parse_is_not():
+    assert parse_expr("x is not None") == BinOp(Name("x"), "is not", Name("None"))
 
 def test_while_missing_body_raises():
     from lpp.parser import ParseError

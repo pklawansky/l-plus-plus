@@ -1,6 +1,6 @@
 # L++ Work Priorities
 
-*Last updated: 2026-04-17 (session 5)*
+*Last updated: 2026-04-18 (session 6)*
 
 ---
 
@@ -36,54 +36,38 @@ Supports stacked, call-expression, and attribute decorators. Methods inside clas
 Ran a non-trivial script exercising most Python paradigms. All working sections pass.
 Gaps discovered, ranked by return:
 
-### 7. `is` / `not in` — silent wrong output `[ HIGH ]`
-- `x is None` → transpiles as `x, is, None` (comma-separated; `is` treated as name)
-- `x not in col` → garbled output (`not` as name, `in` keyword left over)
-- Fix: add `is` and `not in` as comparison operators in `_parse_comparison`
+### 7. `is` / `not in` — `[ DONE ]`
+Added `IS` and `NOT` keywords to lexer; `_parse_comparison` handles `is`, `is not`, and `not in`. 8 new tests, 208/208 pass.
 
-### 8. `**` (power) and `//` (floor div) — hard lex errors `[ HIGH ]`
-- `a**b` → `ParseError: unexpected token STAR`
-- `a//b` → `ParseError: unexpected token SLASH`
-- Fix: add `STARSTAR` and `DOUBLESLASH` tokens to lexer + parser
+### 8. `**` (power) and `//` (floor div) — `[ DONE ]`
+Added `STARSTAR`/`DOUBLESLASH` tokens; `_parse_power` inserted above multiplicative for correct precedence. 6 new tests, 214/214 pass.
 
-### 9. List / dict comprehensions — `[ HIGH ]`
-- `[x*x for x in r(n)]` → `ParseError: unexpected token FOR`
-- `{k: v for ...}` → same
-- Fix: detect `for` keyword inside `[...]`/`{...}` literals and parse as comprehension
+### 9. List / dict comprehensions — `[ DONE ]`
+Added `ListComp`/`DictComp` AST nodes; `_parse_comp_clauses` helper handles `for targets in iter (if cond)?`; iterable uses `_parse_pipeline` to avoid ternary conflict. 10 new tests, 224/224 pass.
 
-### 10. Tuple literals / multi-value return — `[ HIGH ]`
-- `return a, b` → `ParseError: unexpected token COMMA`
-- `x = 1, 2, 3` → same
-- Fix: add `Tuple` AST node; parse comma-separated expressions at statement boundaries
+### 10. Tuple literals / multi-value return — `[ DONE ]`
+Added `Tuple` AST node; `_parse_stmt_tuple()` helper collects comma-separated exprs; used in return, assignment RHS, and expr statements. 7 new tests, 231/231 pass.
 
-### 11. `*args` / `**kwargs` in function params — `[ MEDIUM ]`
-- `def f *args **kwargs` → `ParseError: expected INDENT, got STAR`
-- Fix: extend `_parse_params` to accept `*name` and `**name`
+### 11. `*args` / `**kwargs` in function params — `[ DONE ]`
+Added `kind` field to `Param`; `_parse_params` handles `STAR name` and `STARSTAR name`; transpiler emits `*`/`**` prefixes. 6 new tests, 237/237 pass.
 
-### 12. Slice notation — `[ MEDIUM ]`
-- `lst[0:n]` → `ParseError: expected RBRACKET, got COLON`
-- Fix: add `Slice` AST node; parse `start:stop` (and `start:stop:step`) inside `[...]`
+### 12. Slice notation — `[ DONE ]`
+Added `Slice` AST node; `_parse_subscript_key` handles `start:stop:step` with all optional parts. 10 new tests, 247/247 pass.
 
-### 13. `assert` / `del` — silent wrong output `[ MEDIUM ]`
-- `assert x==1` → emits just `assert` (assertion silently dropped)
-- `del x` → emits `del` then `x` as separate statements
-- Fix: add `assert` and `del` as keywords and AST nodes
+### 13. `assert` / `del` — `[ DONE ]`
+Added `ASSERT`/`DEL` keywords, `AssertStatement`/`DelStatement` AST nodes, parser methods, and transpiler cases. 8 new tests, 255/255 pass.
 
-### 14. `%=` (modulo-assign) — hard parse error `[ MEDIUM ]`
-- `x%=3` → `ParseError: unexpected token EQ`
-- Fix: add `PERCENTEQ` token to lexer; handle in aug-assign parser
+### 14. `%=` (modulo-assign) — `[ DONE ]`
+Added `PERCENTEQ` token to lexer MAP2 and both AUG dicts in parser. 2 new tests, 257/257 pass.
 
-### 15. Set literals — `[ LOW ]`
-- `{1, 2, 3}` → `ParseError: expected COLON, got COMMA`
-- Fix: detect comma (no colon) inside `{...}` and parse as set
+### 15. Set literals — `[ DONE ]`
+Restructured `{...}` parser to peek for COLON (dict) vs COMMA/RBRACE (set); added `SetLiteral` AST node. 4 new tests, 261/261 pass.
 
-### 16. `for/else` — `[ LOW ]`
-- `for i in r(3)\n  ...\nelse\n  ...` → `ParseError: unexpected token ELSE`
-- Fix: check for `else` clause after `for` body in `_parse_statement`
+### 16. `for/else` — `[ DONE ]`
+Added `else_body` field to `ForStatement`; `_parse_for` checks for `ELSE` after body; transpiler emits `else:` block. 2 new tests, 263/263 pass.
 
-### 17. Multiple inheritance — `[ LOW ]`
-- `class Foo:Bar,Baz` → `ParseError: expected INDENT, got COMMA`
-- Fix: parse comma-separated base list in `_parse_class`
+### 17. Multiple inheritance — `[ DONE ]`
+Changed `ClassDef.base: str | None` to `bases: list[str]`; parser collects comma-separated bases; transpiler joins them. 3 new tests, 266/266 pass.
 
 ---
 

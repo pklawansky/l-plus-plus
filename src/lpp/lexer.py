@@ -163,6 +163,8 @@ class Lexer:
             "<=": TokenType.LTE,  ">=": TokenType.GTE,
             "+=": TokenType.PLUSEQ, "-=": TokenType.MINUSEQ,
             "*=": TokenType.STAREQ, "/=": TokenType.SLASHEQ,
+            "**": TokenType.STARSTAR, "//": TokenType.DOUBLESLASH,
+            "%=": TokenType.PERCENTEQ,
         }
         MAP1 = {
             "|": TokenType.PIPE, "@": TokenType.AT, "!": TokenType.BANG,

@@ -302,3 +302,127 @@ def test_decorator_on_method():
 def test_no_decorator_unchanged():
     result = py("def foo x\n  x*2\n")
     assert result == "def foo(x):\n    return x * 2"
+
+# multiple inheritance
+def test_multi_inherit():
+    result = py("class Foo:Bar,Baz\n  def @init\n    42\n")
+    assert "class Foo(Bar, Baz):" in result
+
+# for/else
+def test_for_else():
+    src = "for i in r(3)\n  p(i)\nelse\n  p(0)\n"
+    result = py(src)
+    assert "for i in r(3):" in result
+    assert "else:" in result
+
+# set literals
+def test_set_literal():
+    assert py("{1,2,3}\n") == "{1, 2, 3}"
+
+def test_set_single():
+    assert py("{42}\n") == "{42}"
+
+# %= augmented assignment
+def test_modulo_assign():
+    assert py("x%=3\n") == "x %= 3"
+
+# assert / del
+def test_assert_basic():
+    assert py("assert x==1\n") == "assert x == 1"
+
+def test_assert_with_msg():
+    assert py('assert x==1,"fail"\n') == 'assert x == 1, "fail"'
+
+def test_del_basic():
+    assert py("del x\n") == "del x"
+
+def test_del_multi():
+    assert py("del x,y\n") == "del x, y"
+
+# slice notation
+def test_slice_basic():
+    assert py("lst[0:n]\n") == "lst[0:n]"
+
+def test_slice_step():
+    assert py("lst[::2]\n") == "lst[::2]"
+
+def test_slice_open_end():
+    assert py("lst[1:]\n") == "lst[1:]"
+
+def test_slice_open_start():
+    assert py("lst[:n]\n") == "lst[:n]"
+
+def test_slice_full():
+    assert py("lst[1:5:2]\n") == "lst[1:5:2]"
+
+# *args / **kwargs
+def test_star_args():
+    result = py("def f *args\n  args\n")
+    assert "def f(*args):" in result
+
+def test_double_star_kwargs():
+    result = py("def f **kwargs\n  kwargs\n")
+    assert "def f(**kwargs):" in result
+
+def test_mixed_params():
+    result = py("def f x *args **kwargs\n  x\n")
+    assert "def f(x, *args, **kwargs):" in result
+
+# tuple literals / multi-value return
+def test_return_tuple():
+    result = py("def f\n  return a, b\n")
+    assert "return a, b" in result
+
+def test_assign_tuple_rhs():
+    assert py("x=1,2,3\n") == "x = 1, 2, 3"
+
+def test_tuple_expr_stmt():
+    assert py("a,b\n") == "a, b"
+
+def test_return_triple():
+    result = py("def f\n  return x, y, z\n")
+    assert "return x, y, z" in result
+
+# list / dict comprehensions
+def test_list_comp_basic():
+    assert py("[x*x for x in r(n)]\n") == "[x * x for x in r(n)]"
+
+def test_list_comp_with_if():
+    assert py("[x for x in lst if x>0]\n") == "[x for x in lst if x > 0]"
+
+def test_dict_comp_basic():
+    assert py("{k: v for k,v in pairs}\n") == "{k: v for k, v in pairs}"
+
+def test_dict_comp_with_if():
+    assert py("{k: v for k,v in pairs if k>0}\n") == "{k: v for k, v in pairs if k > 0}"
+
+def test_list_comp_in_assignment():
+    assert py("sq=[x*x for x in r(5)]\n") == "sq = [x * x for x in r(5)]"
+
+# ** and //
+def test_power():
+    assert py("a**b\n") == "a ** b"
+
+def test_floordiv():
+    assert py("a//b\n") == "a // b"
+
+def test_power_precedence():
+    assert py("a*b**c\n") == "a * b ** c"
+
+# is / not in operators
+def test_is_none():
+    assert py("x is None\n") == "x is None"
+
+def test_not_in():
+    assert py("x not in col\n") == "x not in col"
+
+def test_is_not_none():
+    assert py("x is not None\n") == "x is not None"
+
+def test_is_in_if():
+    result = py("if x is None\n  x=1\n")
+    assert "if x is None:" in result
+
+def test_not_in_in_if():
+    result = py("if x not in col\n  x=1\n")
+    assert "if x not in col:" in result

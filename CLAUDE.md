@@ -6,6 +6,7 @@
 
 - When starting work on an item, mark it **IN PROGRESS**
 - When completing an item, mark it **DONE** with a one-line summary of what changed
+- When an item is marked as **DONE** and there is another task which can be worked on, automatically progress through the list instead of asking permission. 
 - When discovering new work, add it in the correct priority tier
 - Re-rank items if new information changes their relative value
 

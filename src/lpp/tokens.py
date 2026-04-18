@@ -25,6 +25,12 @@ class TokenType(Enum):
     GLOBAL = auto()
     NL = auto()
     FROM = auto()
+    IS = auto()
+    NOT = auto()
+    STARSTAR = auto()
+    DOUBLESLASH = auto()
+    ASSERT = auto()
+    DEL = auto()
     # Literals
     NUMBER = auto()
     STRING = auto()
@@ -55,6 +61,7 @@ class TokenType(Enum):
     MINUSEQ = auto()
     STAREQ = auto()
     SLASHEQ = auto()
+    PERCENTEQ = auto()
     # Delimiters
     LPAREN = auto()
     RPAREN = auto()
@@ -93,6 +100,10 @@ KEYWORDS: dict[str, TokenType] = {
     "global": TokenType.GLOBAL,
     "nl": TokenType.NL,
     "from": TokenType.FROM,
+    "is": TokenType.IS,
+    "not": TokenType.NOT,
+    "assert": TokenType.ASSERT,
+    "del": TokenType.DEL,
 }
 
 @dataclass

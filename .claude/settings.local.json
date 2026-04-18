@@ -22,7 +22,9 @@
       "Bash(gh pr *)",
       "Skill(gsd:map-codebase)",
       "Skill(update-config)",
-      "Bash(py *)"
+      "Bash(py *)",
+      "Bash(lpp examples/showcase.lpp)",
+      "Bash(lpp examples/showcase.lpp --run)"
     ]
   },
   "hooks": {

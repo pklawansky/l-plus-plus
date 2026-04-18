@@ -117,6 +117,18 @@ class Parser:
     def parse_expression(self) -> Expression:
         return self._parse_ternary()
 
+    def _parse_stmt_tuple(self) -> Expression:
+        first = self.parse_expression()
+        if not self.match(TokenType.COMMA):
+            return first
+        elements = [first]
+        while self.match(TokenType.COMMA):
+            self.advance()
+            if self.match(TokenType.NEWLINE, TokenType.EOF):
+                break
+            elements.append(self.parse_expression())
+        return Tuple(elements)
+
     def _parse_ternary(self) -> Expression:
         value = self._parse_pipeline()
         if self.match(TokenType.IF):
@@ -202,6 +214,19 @@ class Parser:
             self.advance()
             right = self._parse_additive()
             return BinOp(left, "in", right)
+        if self.peek_type() == TokenType.NOT:
+            self.advance()
+            self.expect(TokenType.IN)
+            right = self._parse_additive()
+            return BinOp(left, "not in", right)
+        if self.peek_type() == TokenType.IS:
+            self.advance()
+            if self.peek_type() == TokenType.NOT:
+                self.advance()
+                right = self._parse_additive()
+                return BinOp(left, "is not", right)
+            right = self._parse_additive()
+            return BinOp(left, "is", right)
         return left
 
     def _parse_additive(self) -> Expression:
@@ -213,18 +238,44 @@ class Parser:
         return left
 
     def _parse_multiplicative(self) -> Expression:
-        left = self._parse_unary()
-        while self.match(TokenType.STAR, TokenType.SLASH, TokenType.PERCENT):
-            op = self.advance().value
-            right = self._parse_unary()
+        left = self._parse_power()
+        while self.match(TokenType.STAR, TokenType.SLASH, TokenType.PERCENT, TokenType.DOUBLESLASH):
+            tok = self.advance()
+            op = "//" if tok.type == TokenType.DOUBLESLASH else tok.value
+            right = self._parse_power()
             left = BinOp(left, op, right)
         return left
+
+    def _parse_power(self) -> Expression:
+        base = self._parse_unary()
+        if self.match(TokenType.STARSTAR):
+            self.advance()
+            exp = self._parse_power()
+            return BinOp(base, "**", exp)
+        return base
 
     def _parse_unary(self) -> Expression:
         if self.match(TokenType.MINUS):
             self.advance()
             return UnaryOp("-", self._parse_postfix())
         return self._parse_postfix()
+
+    def _parse_subscript_key(self) -> Expression:
+        if self.match(TokenType.COLON):
+            start = None
+        else:
+            start = self.parse_expression()
+        if not self.match(TokenType.COLON):
+            self.expect(TokenType.RBRACKET)
+            return start
+        self.advance()
+        stop = None if self.match(TokenType.COLON, TokenType.RBRACKET) else self.parse_expression()
+        step = None
+        if self.match(TokenType.COLON):
+            self.advance()
+            step = None if self.match(TokenType.RBRACKET) else self.parse_expression()
+        self.expect(TokenType.RBRACKET)
+        return Slice(start, stop, step)
 
     def _parse_postfix(self) -> Expression:
         expr = self._parse_primary()
@@ -240,9 +291,7 @@ class Parser:
                 expr = self._parse_call(expr)
             elif self.match(TokenType.LBRACKET):
                 self.advance()
-                key = self.parse_expression()
-                self.expect(TokenType.RBRACKET)
-                expr = Subscript(expr, key)
+                expr = Subscript(expr, self._parse_subscript_key())
             else:
                 break
         return expr
@@ -297,26 +346,55 @@ class Parser:
 
         if tok.type == TokenType.LBRACKET:
             self.advance()
-            elements = []
-            while not self.match(TokenType.RBRACKET, TokenType.EOF):
+            if self.match(TokenType.RBRACKET):
+                self.advance()
+                return ListLiteral([])
+            first = self.parse_expression()
+            if self.match(TokenType.FOR):
+                targets, iterable, condition = self._parse_comp_clauses()
+                self.expect(TokenType.RBRACKET)
+                return ListComp(first, targets, iterable, condition)
+            elements = [first]
+            while self.match(TokenType.COMMA):
+                self.advance()
+                if self.match(TokenType.RBRACKET):
+                    break
                 elements.append(self.parse_expression())
-                if self.match(TokenType.COMMA):
-                    self.advance()
             self.expect(TokenType.RBRACKET)
             return ListLiteral(elements)
 
         if tok.type == TokenType.LBRACE:
             self.advance()
-            pairs = []
-            while not self.match(TokenType.RBRACE, TokenType.EOF):
-                key = self.parse_expression()
-                self.expect(TokenType.COLON)
+            if self.match(TokenType.RBRACE):
+                self.advance()
+                return DictLiteral([])
+            first = self.parse_expression()
+            if self.match(TokenType.COLON):
+                self.advance()
                 val = self.parse_expression()
-                pairs.append((key, val))
-                if self.match(TokenType.COMMA):
+                if self.match(TokenType.FOR):
+                    targets, iterable, condition = self._parse_comp_clauses()
+                    self.expect(TokenType.RBRACE)
+                    return DictComp(first, val, targets, iterable, condition)
+                pairs = [(first, val)]
+                while self.match(TokenType.COMMA):
                     self.advance()
+                    if self.match(TokenType.RBRACE):
+                        break
+                    k = self.parse_expression()
+                    self.expect(TokenType.COLON)
+                    v = self.parse_expression()
+                    pairs.append((k, v))
+                self.expect(TokenType.RBRACE)
+                return DictLiteral(pairs)
+            elements = [first]
+            while self.match(TokenType.COMMA):
+                self.advance()
+                if self.match(TokenType.RBRACE):
+                    break
+                elements.append(self.parse_expression())
             self.expect(TokenType.RBRACE)
-            return DictLiteral(pairs)
+            return SetLiteral(elements)
 
         raise ParseError(
             f"unexpected token {tok.type.name} ({tok.value!r})",
@@ -377,6 +455,8 @@ class Parser:
         if tt == TokenType.NL:       return self._parse_nonlocal()
         if tt == TokenType.RAISE:    return self._parse_raise()
         if tt == TokenType.WITH:     return self._parse_with()
+        if tt == TokenType.ASSERT:   return self._parse_assert()
+        if tt == TokenType.DEL:      return self._parse_del()
 
         # Could be assignment, aug-assignment, append, or expression statement
         return self._parse_expr_or_assign()
@@ -396,13 +476,22 @@ class Parser:
 
     def _parse_params(self) -> list[Param]:
         params = []
-        while self.match(TokenType.IDENT):
-            pname = self.advance().value
-            default = None
-            if self.match(TokenType.EQ):
+        while self.match(TokenType.IDENT, TokenType.STAR, TokenType.STARSTAR):
+            if self.match(TokenType.STARSTAR):
                 self.advance()
-                default = self.parse_expression()
-            params.append(Param(pname, default))
+                pname = self.expect(TokenType.IDENT).value
+                params.append(Param(pname, kind="kw"))
+            elif self.match(TokenType.STAR):
+                self.advance()
+                pname = self.expect(TokenType.IDENT).value
+                params.append(Param(pname, kind="var"))
+            else:
+                pname = self.advance().value
+                default = None
+                if self.match(TokenType.EQ):
+                    self.advance()
+                    default = self.parse_expression()
+                params.append(Param(pname, default))
         return params
 
     def _parse_class(self, decorators=None) -> ClassDef:
@@ -410,10 +499,13 @@ class Parser:
             decorators = []
         self.expect(TokenType.CLASS)
         name = self.expect(TokenType.IDENT).value
-        base = None
+        bases = []
         if self.match(TokenType.COLON):
             self.advance()
-            base = self.expect(TokenType.IDENT).value
+            bases = [self.expect(TokenType.IDENT).value]
+            while self.match(TokenType.COMMA):
+                self.advance()
+                bases.append(self.expect(TokenType.IDENT).value)
         self.skip_newlines()
         self.expect(TokenType.INDENT)
         methods = []
@@ -426,7 +518,7 @@ class Parser:
             self.skip_newlines()
         if self.match(TokenType.DEDENT):
             self.advance()
-        return ClassDef(name, base, methods, decorators)
+        return ClassDef(name, bases, methods, decorators)
 
     def _parse_if(self) -> IfStatement:
         self.expect(TokenType.IF)
@@ -447,6 +539,39 @@ class Parser:
                 elifs.append((cond, self._parse_block()))
         return IfStatement(condition, body, elifs)
 
+    def _parse_assert(self) -> AssertStatement:
+        self.expect(TokenType.ASSERT)
+        test = self.parse_expression()
+        msg = None
+        if self.match(TokenType.COMMA):
+            self.advance()
+            msg = self.parse_expression()
+        if self.match(TokenType.NEWLINE): self.advance()
+        return AssertStatement(test, msg)
+
+    def _parse_del(self) -> DelStatement:
+        self.expect(TokenType.DEL)
+        targets = [self.parse_expression()]
+        while self.match(TokenType.COMMA):
+            self.advance()
+            targets.append(self.parse_expression())
+        if self.match(TokenType.NEWLINE): self.advance()
+        return DelStatement(targets)
+
+    def _parse_comp_clauses(self) -> tuple[list[str], Expression, Expression | None]:
+        self.expect(TokenType.FOR)
+        targets = [self.expect(TokenType.IDENT).value]
+        while self.match(TokenType.COMMA):
+            self.advance()
+            targets.append(self.expect(TokenType.IDENT).value)
+        self.expect(TokenType.IN)
+        iterable = self._parse_pipeline()
+        condition = None
+        if self.match(TokenType.IF):
+            self.advance()
+            condition = self._parse_pipeline()
+        return targets, iterable, condition
+
     def _parse_for(self) -> ForStatement:
         self.expect(TokenType.FOR)
         targets = [self.expect(TokenType.IDENT).value]
@@ -457,7 +582,13 @@ class Parser:
         iterable = self.parse_expression()
         self.skip_newlines()
         body = self._parse_block()
-        return ForStatement(targets, iterable, body)
+        else_body = None
+        self.skip_newlines()
+        if self.match(TokenType.ELSE):
+            self.advance()
+            self.skip_newlines()
+            else_body = self._parse_block()
+        return ForStatement(targets, iterable, body, else_body)
 
     def _parse_while(self) -> DoStatement:
         self.expect(TokenType.WHILE)
@@ -499,7 +630,7 @@ class Parser:
         self.expect(TokenType.RETURN)
         value = None
         if not self.match(TokenType.NEWLINE, TokenType.EOF):
-            value = self.parse_expression()
+            value = self._parse_stmt_tuple()
         if self.match(TokenType.NEWLINE):
             self.advance()
         return RetStatement(value)
@@ -641,25 +772,33 @@ class Parser:
         expr = self.parse_expression()
         AUG = {
             TokenType.PLUSEQ: "+=", TokenType.MINUSEQ: "-=",
-            TokenType.STAREQ: "*=", TokenType.SLASHEQ: "/=",
+            TokenType.STAREQ: "*=", TokenType.SLASHEQ: "/=", TokenType.PERCENTEQ: "%=",
         }
         if self.peek_type() in AUG:
             op = AUG[self.advance().type]
-            value = self.parse_expression()
+            value = self._parse_stmt_tuple()
             if self.match(TokenType.NEWLINE): self.advance()
             target = expr.id if isinstance(expr, Name) else expr
             return AugAssignment(target, op, value)
         if self.match(TokenType.EQ):
             self.advance()
-            value = self.parse_expression()
+            value = self._parse_stmt_tuple()
             if self.match(TokenType.NEWLINE): self.advance()
             target = expr.id if isinstance(expr, Name) else expr
             return Assignment(target, value)
         if self.match(TokenType.APPEND):
             self.advance()
-            value = self.parse_expression()
+            value = self._parse_stmt_tuple()
             if self.match(TokenType.NEWLINE): self.advance()
             return AppendStatement(expr, value)
+        if self.match(TokenType.COMMA):
+            elements = [expr]
+            while self.match(TokenType.COMMA):
+                self.advance()
+                if self.match(TokenType.NEWLINE, TokenType.EOF):
+                    break
+                elements.append(self.parse_expression())
+            expr = Tuple(elements)
         if self.match(TokenType.NEWLINE): self.advance()
         return ExprStatement(expr)
 
@@ -672,7 +811,7 @@ class Parser:
             attr = self.expect(TokenType.IDENT).value
             AUG = {
                 TokenType.PLUSEQ: "+=", TokenType.MINUSEQ: "-=",
-                TokenType.STAREQ: "*=", TokenType.SLASHEQ: "/=",
+                TokenType.STAREQ: "*=", TokenType.SLASHEQ: "/=", TokenType.PERCENTEQ: "%=",
             }
             if self.peek_type() in AUG:
                 op = AUG[self.advance().type]

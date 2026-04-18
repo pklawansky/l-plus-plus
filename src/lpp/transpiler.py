@@ -58,6 +58,13 @@ class Transpiler:
                 return f"{pad}global {', '.join(names)}"
             case NonlocalStatement(names):
                 return f"{pad}nonlocal {', '.join(names)}"
+            case AssertStatement(test, msg):
+                if msg is None:
+                    return f"{pad}assert {self._expr(test)}"
+                return f"{pad}assert {self._expr(test)}, {self._expr(msg)}"
+            case DelStatement(targets):
+                tgts = ", ".join(self._expr(t) for t in targets)
+                return f"{pad}del {tgts}"
             case RaiseStatement(exc, cause):
                 if exc is None:
                     return f"{pad}raise"
@@ -102,7 +109,11 @@ class Transpiler:
         if node.is_method:
             params.append("self")
         for p in node.params:
-            if p.default is not None:
+            if p.kind == "var":
+                params.append(f"*{p.name}")
+            elif p.kind == "kw":
+                params.append(f"**{p.name}")
+            elif p.default is not None:
                 params.append(f"{p.name}={self._expr(p.default)}")
             else:
                 params.append(p.name)
@@ -127,7 +138,7 @@ class Transpiler:
 
     def _cls(self, node: ClassDef, depth: int) -> str:
         pad = INDENT * depth
-        base = f"({node.base})" if node.base else ""
+        base = f"({', '.join(node.bases)})" if node.bases else ""
         lines = []
         for dec in node.decorators:
             lines.append(f"{pad}@{self._expr(dec)}")
@@ -153,6 +164,9 @@ class Transpiler:
         targets = ", ".join(node.targets)
         lines = [f"{pad}for {targets} in {self._expr(node.iterable)}:"]
         lines += [self._stmt(s, depth + 1) for s in node.body]
+        if node.else_body is not None:
+            lines.append(f"{pad}else:")
+            lines += [self._stmt(s, depth + 1) for s in node.else_body]
         return "\n".join(lines)
 
     def _try(self, node: TryStatement, depth: int) -> str:
@@ -197,6 +211,12 @@ class Transpiler:
                 return f"{self._expr(obj)}.{attr}"
             case Subscript(obj, key):
                 return f"{self._expr(obj)}[{self._expr(key)}]"
+            case Slice(start, stop, step):
+                s = self._expr(start) if start is not None else ""
+                e = self._expr(stop) if stop is not None else ""
+                if step is not None:
+                    return f"{s}:{e}:{self._expr(step)}"
+                return f"{s}:{e}"
             case BinOp(left, op, right):
                 return f"{self._expr(left)} {op} {self._expr(right)}"
             case UnaryOp(op, operand):
@@ -219,6 +239,18 @@ class Transpiler:
             case DictLiteral(pairs):
                 items = ", ".join(f"{self._expr(k)}: {self._expr(v)}" for k, v in pairs)
                 return "{" + items + "}"
+            case SetLiteral(elements):
+                return "{" + ", ".join(self._expr(e) for e in elements) + "}"
+            case Tuple(elements):
+                return ", ".join(self._expr(e) for e in elements)
+            case ListComp(elt, targets, iter, condition):
+                target_str = ", ".join(targets)
+                cond = f" if {self._expr(condition)}" if condition else ""
+                return f"[{self._expr(elt)} for {target_str} in {self._expr(iter)}{cond}]"
+            case DictComp(key, value, targets, iter, condition):
+                target_str = ", ".join(targets)
+                cond = f" if {self._expr(condition)}" if condition else ""
+                return "{" + f"{self._expr(key)}: {self._expr(value)} for {target_str} in {self._expr(iter)}{cond}" + "}"
             case Spread(value):
                 return f"*{self._expr(value)}"
             case _:
