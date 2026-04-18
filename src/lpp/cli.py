@@ -74,6 +74,8 @@ def _compile_dir(src_dir: str, out_dir: str) -> bool:
 
 def _watch(src: str, out_dir: str, interval: float) -> None:
     """Poll src for mtime changes and recompile .lpp files on modification."""
+    sys.stdout.reconfigure(line_buffering=True)  # type: ignore[union-attr]
+
     def snapshot():
         if os.path.isfile(src):
             return {src: os.path.getmtime(src)}

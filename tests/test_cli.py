@@ -1,4 +1,4 @@
-import subprocess, sys, tempfile, os
+import subprocess, sys, tempfile, os, time
 
 def lpp(*args):
     """Run the lpp CLI and return (returncode, stdout, stderr)."""
@@ -84,9 +84,6 @@ def test_dir_compile_exits_one_on_any_error():
         code, _, err = lpp(src_dir, "-o", out_dir)
         assert code == 1
         assert "bad.lpp" in err
-
-
-import time
 
 
 def test_watch_compiles_on_change():
