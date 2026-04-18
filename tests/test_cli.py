@@ -48,3 +48,40 @@ def test_check_does_not_emit_python():
     finally:
         os.unlink(path)
 
+
+def test_dir_compile_requires_output_flag():
+    with tempfile.TemporaryDirectory() as d:
+        open(os.path.join(d, "a.lpp"), "w").write("x=1\n")
+        code, out, err = lpp(d)
+        assert code == 1
+        assert "-o" in err or "output" in err.lower()
+
+def test_dir_compile_creates_py_files():
+    with tempfile.TemporaryDirectory() as src_dir, \
+         tempfile.TemporaryDirectory() as out_dir:
+        open(os.path.join(src_dir, "a.lpp"), "w").write("x=1\n")
+        open(os.path.join(src_dir, "b.lpp"), "w").write("y=2\n")
+        code, out, err = lpp(src_dir, "-o", out_dir)
+        assert code == 0
+        assert os.path.exists(os.path.join(out_dir, "a.py"))
+        assert os.path.exists(os.path.join(out_dir, "b.py"))
+
+def test_dir_compile_mirrors_subdirs():
+    with tempfile.TemporaryDirectory() as src_dir, \
+         tempfile.TemporaryDirectory() as out_dir:
+        sub = os.path.join(src_dir, "sub")
+        os.makedirs(sub)
+        open(os.path.join(sub, "c.lpp"), "w").write("z=3\n")
+        code, _, _ = lpp(src_dir, "-o", out_dir)
+        assert code == 0
+        assert os.path.exists(os.path.join(out_dir, "sub", "c.py"))
+
+def test_dir_compile_exits_one_on_any_error():
+    with tempfile.TemporaryDirectory() as src_dir, \
+         tempfile.TemporaryDirectory() as out_dir:
+        open(os.path.join(src_dir, "good.lpp"), "w").write("x=1\n")
+        open(os.path.join(src_dir, "bad.lpp"), "w").write("def\n")
+        code, _, err = lpp(src_dir, "-o", out_dir)
+        assert code == 1
+        assert "bad.lpp" in err
+
