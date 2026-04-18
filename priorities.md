@@ -1,6 +1,6 @@
 # L++ Work Priorities
 
-*Last updated: 2026-04-18 (session 6)*
+*Last updated: 2026-04-18 (session 8)*
 
 ---
 
@@ -94,26 +94,32 @@ Added `else_body` field to `DoStatement`; `_parse_while` checks for `ELSE` after
 
 Plan: `docs/superpowers/plans/2026-04-18-enterprise-packaging.md`
 
-### 23. PyPI metadata + `__version__` — `[ TODO ]`
-Add description, authors, license, classifiers, and URLs to `pyproject.toml`. Expose `__version__` via `importlib.metadata` in `__init__.py`.
+### 23. PyPI metadata + `__version__` — `[ DONE ]`
+Added description, authors, MIT license, classifiers, and URLs to `pyproject.toml`; `__version__` exposed via `importlib.metadata` in `__init__.py`; `LICENSE` file added.
 
-### 24. `--version` flag — `[ TODO ]`
-`lpp --version` prints `lpp <version>`.
+### 24. `--version` flag — `[ DONE ]`
+`argparse action="version"` on compile parser; prints `lpp <version>` to stdout, exits 0.
 
 ### 25. `--check` flag — `[ DONE ]`
 Added `--check` argument to `cli.py`; short-circuits output after successful parse (`pass`). Existing error handler already exits 1 on `LexError`/`ParseError`. 3 new tests, 290/290 pass.
 
-### 26. Directory compilation — `[ TODO ]`
-`lpp src/ -o out/` compiles all `.lpp` files recursively, mirroring directory structure. Reports all errors, exits 1 if any file failed.
+### 26. Directory compilation — `[ DONE ]`
+Added `_compile_dir` and `_check_dir` helpers; directory branch in `main()` before single-file open; `import os` added. Requires `-o` for dir input; mirrors structure under outdir; continues on error, exits 1 if any file failed. 4 new tests, 294/294 pass.
 
-### 27. `watch` subcommand — `[ TODO ]`
-`lpp watch <file|dir> -o <outdir>` polls for `mtime` changes every 500 ms and recompiles on save. Stdlib only, no new dependencies.
+### 27. `watch` subcommand — `[ DONE ]`
+Added `_watch` and reworked `main()` in `cli.py` with argv pre-check routing (avoids argparse subparser/positional conflicts on Windows). Arrow literals replaced with ASCII `->` to avoid cp1252 encoding error. 1 new test, 295/295 pass.
 
 ---
 
-## Enterprise Packaging — Layer 2: DX (deferred)
+## Enterprise Packaging — Layer 2: DX
 
-- **Source maps** — thread line numbers through AST and transpiler so tracebacks point to `.lpp` lines. High value, touches every AST node.
+### Source maps — `[ IN PROGRESS ]`
+
+- **Task 1: Add `line` field to Statement nodes** — `[ DONE ]` All 24 Statement dataclasses in `ast_nodes.py` now have `line: int | None = None` as final field. Parser captures source line in `_parse_statement` wrapper and stores on every returned node. 2 new tests, 301/301 pass.
+- **Task 2: Transpiler emits `# lpp:N` markers** — `[ DONE ]` Renamed `_stmt` → `_emit_stmt`, added wrapper that appends `  # lpp:N` to first line. Updated `py()` helper to strip markers for backward compatibility with existing tests. 3 new tests, 302/302 pass.
+- **Task 3: `--run` installs traceback rewriting hook** — `[ TODO ]` Build line map from `# lpp:N` markers, install `sys.excepthook` before exec, remap tracebacks to `.lpp` lines and show original source.
+
+Other deferred items:
 - **Richer error output** — formatted errors with source snippet and caret (partially done in `cli.py`; full Rust-style context pending).
 - **Watch mode** — covered in Layer 1.
 
