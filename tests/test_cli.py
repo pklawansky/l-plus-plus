@@ -85,3 +85,24 @@ def test_dir_compile_exits_one_on_any_error():
         assert code == 1
         assert "bad.lpp" in err
 
+
+import threading, time
+
+def test_watch_compiles_on_change():
+    with tempfile.TemporaryDirectory() as src_dir, \
+         tempfile.TemporaryDirectory() as out_dir:
+        lpp_path = os.path.join(src_dir, "a.lpp")
+        out_path = os.path.join(out_dir, "a.py")
+        open(lpp_path, "w").write("x=1\n")
+
+        proc = subprocess.Popen(
+            [sys.executable, "-m", "lpp.cli", "watch", src_dir, "-o", out_dir],
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
+        )
+        time.sleep(1.5)  # allow one poll cycle
+        proc.terminate()
+        proc.wait(timeout=3)
+
+        assert os.path.exists(out_path)
+        assert "x = 1" in open(out_path).read()
+

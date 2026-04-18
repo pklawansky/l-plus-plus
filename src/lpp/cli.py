@@ -1,6 +1,7 @@
 import sys
 import os
 import argparse
+import time
 from .lexer import LexError
 from .parser import ParseError
 from . import compile_lpp, __version__
@@ -71,21 +72,79 @@ def _compile_dir(src_dir: str, out_dir: str) -> bool:
     return clean
 
 
+def _watch(src: str, out_dir: str, interval: float) -> None:
+    """Poll src for mtime changes and recompile .lpp files on modification."""
+    def snapshot():
+        if os.path.isfile(src):
+            return {src: os.path.getmtime(src)}
+        return {p: os.path.getmtime(p) for p in _walk_lpp_files(src)}
+
+    def compile_one(src_path: str) -> None:
+        rel = os.path.relpath(src_path, src) if os.path.isdir(src) else os.path.basename(src_path)
+        out_path = os.path.join(out_dir, os.path.splitext(rel)[0] + ".py")
+        os.makedirs(os.path.dirname(out_path), exist_ok=True)
+        source = ""
+        try:
+            with open(src_path) as f:
+                source = f.read()
+            python_src = compile_lpp(source)
+            with open(out_path, "w") as f:
+                f.write(python_src)
+            ts = time.strftime("%H:%M:%S")
+            print(f"[{ts}] compiled {src_path} -> {out_path}")
+        except (LexError, ParseError) as e:
+            print(_format_error(f"error in {src_path}", e, source), file=sys.stderr)
+        except Exception as e:
+            print(f"lpp: internal error in {src_path}: {e}", file=sys.stderr)
+
+    os.makedirs(out_dir, exist_ok=True)
+    prev: dict = {}
+    print(f"lpp watch: watching {src} -> {out_dir}  (Ctrl-C to stop)")
+    try:
+        while True:
+            curr = snapshot()
+            for path, mtime in curr.items():
+                if prev.get(path) != mtime:
+                    compile_one(path)
+            prev = curr
+            time.sleep(interval)
+    except KeyboardInterrupt:
+        print("\nlpp watch: stopped")
+
+
 def main() -> None:
-    parser = argparse.ArgumentParser(
+    # Fast-path: detect 'watch' subcommand before argparse sees the positionals.
+    # Using parse_known_args with subparsers would reject file paths as invalid
+    # subcommand choices, so we inspect argv directly.
+    argv = sys.argv[1:]
+
+    if argv and argv[0] == "--version":
+        print(f"lpp {__version__}")
+        return
+
+    if argv and argv[0] == "watch":
+        watch_p = argparse.ArgumentParser(prog="lpp watch",
+                                          description="watch files and recompile on change")
+        watch_p.add_argument("file", help=".lpp source file or directory to watch")
+        watch_p.add_argument("-o", "--output", required=True, help="output directory")
+        watch_p.add_argument("--interval", type=float, default=0.5,
+                             help="poll interval in seconds (default: 0.5)")
+        wargs = watch_p.parse_args(argv[1:])
+        _watch(wargs.file, wargs.output, wargs.interval)
+        return
+
+    # Compile path
+    compile_p = argparse.ArgumentParser(
         prog="lpp",
         description="L++ transpiler — compile .lpp files to Python",
     )
-    parser.add_argument(
-        "--version", action="version",
-        version=f"lpp {__version__}"
-    )
-    parser.add_argument("file", help=".lpp source file or directory")
-    parser.add_argument("-o", "--output", help="write Python output to file instead of stdout")
-    parser.add_argument("--run", action="store_true", help="execute transpiled Python immediately")
-    parser.add_argument("--check", action="store_true",
-                        help="validate only — parse without emitting output (exits 1 on error)")
-    args = parser.parse_args()
+    compile_p.add_argument("--version", action="version", version=f"lpp {__version__}")
+    compile_p.add_argument("file", help=".lpp source file or directory")
+    compile_p.add_argument("-o", "--output", help="write Python output to file instead of stdout")
+    compile_p.add_argument("--run", action="store_true", help="execute transpiled Python immediately")
+    compile_p.add_argument("--check", action="store_true",
+                           help="validate only — parse without emitting output (exits 1 on error)")
+    args = compile_p.parse_args(argv)
 
     if args.check and (args.run or args.output):
         print("lpp: error: --check is mutually exclusive with --run and -o", file=sys.stderr)
