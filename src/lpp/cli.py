@@ -2,7 +2,7 @@ import sys
 import argparse
 from .lexer import LexError
 from .parser import ParseError
-from . import compile_lpp
+from . import compile_lpp, __version__
 
 
 def _format_error(label: str, err: Exception, source: str) -> str:
@@ -25,6 +25,10 @@ def main() -> None:
     parser = argparse.ArgumentParser(
         prog="lpp",
         description="L++ transpiler — compile .lpp files to Python",
+    )
+    parser.add_argument(
+        "--version", action="version",
+        version=f"lpp {__version__}"
     )
     parser.add_argument("file", help=".lpp source file")
     parser.add_argument("-o", "--output", help="write Python output to file instead of stdout")
