@@ -114,6 +114,48 @@ def _watch(src: str, out_dir: str, interval: float) -> None:
         print("\nlpp watch: stopped")
 
 
+def _build_line_map(python_src: str) -> dict[int, int]:
+    """Return {py_lineno: lpp_lineno} by scanning # lpp:N markers.
+
+    Lines between markers inherit the nearest preceding marker's lpp line.
+    """
+    import re
+    result: dict[int, int] = {}
+    current: int | None = None
+    for py_lineno, src_line in enumerate(python_src.splitlines(), 1):
+        m = re.search(r"# lpp:(\d+)", src_line)
+        if m:
+            current = int(m.group(1))
+        if current is not None:
+            result[py_lineno] = current
+    return result
+
+
+def _install_run_hook(lpp_path: str, lpp_src: str, line_map: dict[int, int]) -> None:
+    """Replace sys.excepthook with one that remaps tracebacks to .lpp lines."""
+    import traceback as tb_mod
+    lpp_lines = lpp_src.splitlines()
+
+    def hook(exc_type, exc_value, exc_tb):
+        frames = tb_mod.extract_tb(exc_tb)
+        sys.stderr.write("Traceback (most recent call last):\n")
+        for frame in frames:
+            if frame.filename == lpp_path:
+                lpp_lineno = line_map.get(frame.lineno, frame.lineno)
+                sys.stderr.write(f'  File "{lpp_path}", line {lpp_lineno}\n')
+                if 0 < lpp_lineno <= len(lpp_lines):
+                    sys.stderr.write(f"    {lpp_lines[lpp_lineno - 1].strip()}\n")
+            else:
+                sys.stderr.write(
+                    f'  File "{frame.filename}", line {frame.lineno}, in {frame.name}\n'
+                )
+                if frame.line:
+                    sys.stderr.write(f"    {frame.line}\n")
+        sys.stderr.write(f"{exc_type.__name__}: {exc_value}\n")
+
+    sys.excepthook = hook
+
+
 def main() -> None:
     # Fast-path: detect 'watch' subcommand before argparse sees the positionals.
     # Using parse_known_args with subparsers would reject file paths as invalid
@@ -178,6 +220,8 @@ def main() -> None:
     if args.check:
         pass  # compiled successfully, nothing to emit
     elif args.run:
+        line_map = _build_line_map(python_src)
+        _install_run_hook(args.file, source, line_map)
         exec(compile(python_src, args.file, "exec"), {"__name__": "__main__"})
     elif args.output:
         with open(args.output, "w") as f:

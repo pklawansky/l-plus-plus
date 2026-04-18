@@ -86,6 +86,19 @@ def test_dir_compile_exits_one_on_any_error():
         assert "bad.lpp" in err
 
 
+def test_run_traceback_remaps_to_lpp_line():
+    # Line 1: valid assignment; line 2: raises
+    path = write_lpp('x = 1\nraise ValueError("oops")\n')
+    try:
+        code, out, err = lpp(path, "--run")
+        assert code != 0
+        assert os.path.basename(path) in err or path in err
+        assert "line 2" in err
+        assert "ValueError" in err
+    finally:
+        os.unlink(path)
+
+
 def test_watch_compiles_on_change():
     with tempfile.TemporaryDirectory() as src_dir, \
          tempfile.TemporaryDirectory() as out_dir:
