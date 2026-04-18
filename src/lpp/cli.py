@@ -22,51 +22,52 @@ def _format_error(label: str, err: Exception, source: str) -> str:
     return "\n".join(lines)
 
 
+def _walk_lpp_files(src_dir: str):
+    """Yield absolute paths of all .lpp files under src_dir."""
+    for root, _, files in os.walk(src_dir):
+        for fname in files:
+            if fname.endswith(".lpp"):
+                yield os.path.join(root, fname)
+
+
 def _check_dir(src_dir: str) -> bool:
     """Parse-only check of all .lpp files under src_dir. Returns True if clean."""
     clean = True
-    for root, _, files in os.walk(src_dir):
-        for fname in files:
-            if not fname.endswith(".lpp"):
-                continue
-            src_path = os.path.join(root, fname)
-            try:
-                with open(src_path) as f:
-                    source = f.read()
-                compile_lpp(source)
-            except (LexError, ParseError) as e:
-                print(_format_error(f"error in {src_path}", e, source), file=sys.stderr)
-                clean = False
-            except Exception as e:
-                print(f"lpp: internal error in {src_path}: {e}", file=sys.stderr)
-                clean = False
+    for src_path in _walk_lpp_files(src_dir):
+        source = ""
+        try:
+            with open(src_path) as f:
+                source = f.read()
+            compile_lpp(source)
+        except (LexError, ParseError) as e:
+            print(_format_error(f"error in {src_path}", e, source), file=sys.stderr)
+            clean = False
+        except Exception as e:
+            print(f"lpp: internal error in {src_path}: {e}", file=sys.stderr)
+            clean = False
     return clean
 
 
 def _compile_dir(src_dir: str, out_dir: str) -> bool:
     """Compile all .lpp files under src_dir into out_dir. Returns True if clean."""
     clean = True
-    for root, _, files in os.walk(src_dir):
-        for fname in files:
-            if not fname.endswith(".lpp"):
-                continue
-            src_path = os.path.join(root, fname)
-            rel = os.path.relpath(src_path, src_dir)
-            out_path = os.path.join(out_dir, os.path.splitext(rel)[0] + ".py")
-            os.makedirs(os.path.dirname(out_path), exist_ok=True)
-            source = ""
-            try:
-                with open(src_path) as f:
-                    source = f.read()
-                python_src = compile_lpp(source)
-                with open(out_path, "w") as f:
-                    f.write(python_src)
-            except (LexError, ParseError) as e:
-                print(_format_error(f"error in {src_path}", e, source), file=sys.stderr)
-                clean = False
-            except Exception as e:
-                print(f"lpp: internal error in {src_path}: {e}", file=sys.stderr)
-                clean = False
+    for src_path in _walk_lpp_files(src_dir):
+        rel = os.path.relpath(src_path, src_dir)
+        out_path = os.path.join(out_dir, os.path.splitext(rel)[0] + ".py")
+        os.makedirs(os.path.dirname(out_path), exist_ok=True)
+        source = ""
+        try:
+            with open(src_path) as f:
+                source = f.read()
+            python_src = compile_lpp(source)
+            with open(out_path, "w") as f:
+                f.write(python_src)
+        except (LexError, ParseError) as e:
+            print(_format_error(f"error in {src_path}", e, source), file=sys.stderr)
+            clean = False
+        except Exception as e:
+            print(f"lpp: internal error in {src_path}: {e}", file=sys.stderr)
+            clean = False
     return clean
 
 
@@ -79,7 +80,7 @@ def main() -> None:
         "--version", action="version",
         version=f"lpp {__version__}"
     )
-    parser.add_argument("file", help=".lpp source file")
+    parser.add_argument("file", help=".lpp source file or directory")
     parser.add_argument("-o", "--output", help="write Python output to file instead of stdout")
     parser.add_argument("--run", action="store_true", help="execute transpiled Python immediately")
     parser.add_argument("--check", action="store_true",
@@ -91,6 +92,9 @@ def main() -> None:
         sys.exit(1)
 
     if os.path.isdir(args.file):
+        if args.run:
+            print("lpp: error: --run is not supported for directory input", file=sys.stderr)
+            sys.exit(1)
         if args.check:
             sys.exit(0 if _check_dir(args.file) else 1)
         if not args.output:
