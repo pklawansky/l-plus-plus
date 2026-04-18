@@ -113,11 +113,11 @@ Added `_watch` and reworked `main()` in `cli.py` with argv pre-check routing (av
 
 ## Enterprise Packaging — Layer 2: DX
 
-### Source maps — `[ IN PROGRESS ]`
+### Source maps — `[ DONE ]`
 
 - **Task 1: Add `line` field to Statement nodes** — `[ DONE ]` All 24 Statement dataclasses in `ast_nodes.py` now have `line: int | None = None` as final field. Parser captures source line in `_parse_statement` wrapper and stores on every returned node. 2 new tests, 301/301 pass.
 - **Task 2: Transpiler emits `# lpp:N` markers** — `[ DONE ]` Renamed `_stmt` → `_emit_stmt`, added wrapper that appends `  # lpp:N` to first line. Updated `py()` helper to strip markers for backward compatibility with existing tests. 3 new tests, 302/302 pass.
-- **Task 3: `--run` installs traceback rewriting hook** — `[ TODO ]` Build line map from `# lpp:N` markers, install `sys.excepthook` before exec, remap tracebacks to `.lpp` lines and show original source.
+- **Task 3: `--run` installs traceback rewriting hook** — `[ DONE ]` Added `_build_line_map` and `_install_run_hook` to `cli.py`; `--run` branch now installs a `sys.excepthook` that translates Python line numbers back to L++ source lines using `# lpp:N` markers. 1 new test, 304/304 pass.
 
 Other deferred items:
 - **Richer error output** — formatted errors with source snippet and caret (partially done in `cli.py`; full Rust-style context pending).
