@@ -4,8 +4,26 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "lpp"
-version = "0.1.0"
+version = "0.2.0"
+description = "A terse Python transpiler — write compact .lpp source, emit idiomatic Python"
+readme = "README.md"
 requires-python = ">=3.11"
+license = { text = "MIT" }
+authors = [{ name = "Phillip Klawansky", email = "pklawansky@gmail.com" }]
+keywords = ["transpiler", "python", "llm", "code-generation"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Software Development :: Code Generators",
+    "Topic :: Software Development :: Compilers",
+]
+
+[project.urls]
+Homepage = "https://github.com/pklawansky/l-plus-plus"
+Repository = "https://github.com/pklawansky/l-plus-plus"
+Issues = "https://github.com/pklawansky/l-plus-plus/issues"
 
 [project.scripts]
 lpp = "lpp.cli:main"
