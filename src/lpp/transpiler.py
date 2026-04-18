@@ -13,6 +13,14 @@ class Transpiler:
     # --- Statements ---
 
     def _stmt(self, node: Statement, depth: int) -> str:
+        result = self._emit_stmt(node, depth)
+        lpp_line = getattr(node, "line", None)
+        if lpp_line is not None:
+            first, sep, rest = result.partition("\n")
+            return f"{first}  # lpp:{lpp_line}{sep}{rest}"
+        return result
+
+    def _emit_stmt(self, node: Statement, depth: int) -> str:
         pad = INDENT * depth
         match node:
             case FunctionDef():

@@ -8,7 +8,15 @@ def py(src: str) -> str:
     # Strip prelude lines (up to first blank line after prelude)
     lines = full.split("\n")
     start = next(i for i, l in enumerate(lines) if l == "") + 1
-    return "\n".join(lines[start:]).strip()
+    # Remove lpp line markers for test compatibility
+    result_lines = []
+    for line in lines[start:]:
+        # Strip # lpp:N comments from the end of lines
+        line = line.rstrip()
+        if "  # lpp:" in line:
+            line = line[:line.rfind("  # lpp:")]
+        result_lines.append(line)
+    return "\n".join(result_lines).strip()
 
 # Expressions
 def test_binop():
@@ -521,3 +529,20 @@ def test_yield_with_other_stmts():
     result = py("def countdown n\n  while n>0\n    yield n\n    n-=1\n")
     assert "yield n" in result
     assert "return yield" not in result
+
+# lpp line markers (source map feature)
+def test_lpp_marker_emitted():
+    out = compile_lpp("x = 1\n")
+    assert "# lpp:1" in out
+
+def test_lpp_markers_on_correct_lines():
+    out = compile_lpp("x = 1\ny = 2\n")
+    x_annotated = next(l for l in out.splitlines() if "x = 1" in l)
+    y_annotated = next(l for l in out.splitlines() if "y = 2" in l)
+    assert "# lpp:1" in x_annotated
+    assert "# lpp:2" in y_annotated
+
+def test_lpp_marker_on_compound_statement():
+    out = compile_lpp("if True\n  x = 1\n")
+    if_line = next(l for l in out.splitlines() if l.strip().startswith("if True"))
+    assert "# lpp:1" in if_line
