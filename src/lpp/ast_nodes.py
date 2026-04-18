@@ -33,6 +33,7 @@ class FunctionDef:
     body: list[Statement]
     is_method: bool
     decorators: list = field(default_factory=list)
+    line: int | None = None
 
 @dataclass
 class Param:
@@ -46,22 +47,26 @@ class ClassDef:
     bases: list[str]
     body: list[FunctionDef]
     decorators: list = field(default_factory=list)
+    line: int | None = None
 
 @dataclass
 class Assignment:
     target: str | Expression    # str for simple names; Expression for subscript/attribute
     value: Expression
+    line: int | None = None
 
 @dataclass
 class AugAssignment:
     target: str | Expression
     op: str            # +=, -=, *=, /=
     value: Expression
+    line: int | None = None
 
 @dataclass
 class AppendStatement:
     target: Expression
     value: Expression
+    line: int | None = None
 
 @dataclass
 class IfStatement:
@@ -69,6 +74,7 @@ class IfStatement:
     body: list[Statement]
     elifs: list[tuple[Expression | None, list[Statement]]] = field(default_factory=list)
     # elifs[-1] has condition=None when the last branch is a bare `el`
+    line: int | None = None
 
 @dataclass
 class ForStatement:
@@ -76,18 +82,21 @@ class ForStatement:
     iterable: Expression
     body: list[Statement]
     else_body: list[Statement] | None = None
+    line: int | None = None
 
 @dataclass
 class DoStatement:
     condition: Expression
     body: list[Statement]
     else_body: list[Statement] | None = None
+    line: int | None = None
 
 @dataclass
 class TryStatement:
     body: list[Statement]
     handlers: list["ErrHandler"]
     finally_body: list[Statement] | None = None
+    line: int | None = None
 
 @dataclass
 class ErrHandler:
@@ -98,10 +107,12 @@ class ErrHandler:
 @dataclass
 class RetStatement:
     value: Expression | None
+    line: int | None = None
 
 @dataclass
 class UseStatement:
     imports: list["UseImport"]
+    line: int | None = None
 
 @dataclass
 class UseImport:
@@ -113,59 +124,69 @@ class UseImport:
 class AliasStatement:
     name: str
     target: Expression
+    line: int | None = None
 
 @dataclass
 class ExprStatement:
     expr: Expression
+    line: int | None = None
 
 @dataclass
 class BreakStatement:
-    pass
+    line: int | None = None
 
 @dataclass
 class ContinueStatement:
-    pass
+    line: int | None = None
 
 @dataclass
 class RaiseStatement:
     exc: Expression | None      # None = bare `raise` (re-raise current exception)
     cause: Expression | None    # None = no `from` clause
+    line: int | None = None
 
 @dataclass
 class WithStatement:
     items: list[tuple[Expression, str | None]]  # (expr, binding_name); name=None if no `as`
     body: list[Statement]
+    line: int | None = None
 
 @dataclass
 class GlobalStatement:
     names: list[str]
+    line: int | None = None
 
 @dataclass
 class NonlocalStatement:
     names: list[str]   # L++ keyword: nl; Python output: nonlocal
+    line: int | None = None
 
 @dataclass
 class UnpackAssignment:
     targets: list[Expression]   # Name("a") for plain names, Spread(Name("b")) for *b
     value: Expression
+    line: int | None = None
 
 @dataclass
 class AssertStatement:
     test: Expression
     msg: Expression | None = None
+    line: int | None = None
 
 @dataclass
 class DelStatement:
     targets: list[Expression]
+    line: int | None = None
 
 @dataclass
 class PassStatement:
-    pass
+    line: int | None = None
 
 @dataclass
 class YieldStatement:
     value: "Expression | None"   # None = bare yield
     is_from: bool = False        # True = yield from
+    line: int | None = None
 
 # --- Expressions ---
 

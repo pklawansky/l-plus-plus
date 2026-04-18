@@ -432,6 +432,12 @@ class Parser:
         return stmts
 
     def _parse_statement(self) -> Statement:
+        stmt_line = self.peek().line
+        node = self._parse_statement_body()
+        node.line = stmt_line
+        return node
+
+    def _parse_statement_body(self) -> Statement:
         tt = self.peek_type()
 
         if tt == TokenType.AT and self._is_decorator_context():

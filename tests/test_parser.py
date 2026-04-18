@@ -725,3 +725,19 @@ def test_collect_decorators_advances_past_at_lines():
     p = Parser(tokens)
     p._collect_decorators()
     assert p.peek_type() == TokenType.DEF
+
+def test_statement_carries_line():
+    from lpp.lexer import Lexer
+    from lpp.parser import Parser
+    tokens = Lexer("x = 1\n").tokenize()
+    prog = Parser(tokens).parse()
+    assert hasattr(prog.body[0], "line"), "Statement node has no .line attribute"
+    assert prog.body[0].line == 1
+
+def test_second_statement_has_correct_line():
+    from lpp.lexer import Lexer
+    from lpp.parser import Parser
+    tokens = Lexer("x = 1\ny = 2\n").tokenize()
+    prog = Parser(tokens).parse()
+    assert prog.body[0].line == 1
+    assert prog.body[1].line == 2
