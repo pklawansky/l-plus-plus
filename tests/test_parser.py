@@ -741,3 +741,19 @@ def test_second_statement_has_correct_line():
     prog = Parser(tokens).parse()
     assert prog.body[0].line == 1
     assert prog.body[1].line == 2
+
+def test_statement_inside_block_has_correct_line():
+    from lpp.lexer import Lexer
+    from lpp.parser import Parser
+    tokens = Lexer("def f\n  x = 1\n  y = 2\n").tokenize()
+    prog = Parser(tokens).parse()
+    body = prog.body[0].body          # FunctionDef.body
+    assert body[0].line == 2
+    assert body[1].line == 3
+
+def test_decorated_functiondef_line_is_decorator_line():
+    from lpp.lexer import Lexer
+    from lpp.parser import Parser
+    tokens = Lexer("@staticmethod\ndef foo x\n  x\n").tokenize()
+    prog = Parser(tokens).parse()
+    assert prog.body[0].line == 1     # @ is on line 1
