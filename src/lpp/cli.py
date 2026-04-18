@@ -37,6 +37,10 @@ def main() -> None:
                         help="validate only — parse without emitting output (exits 1 on error)")
     args = parser.parse_args()
 
+    if args.check and (args.run or args.output):
+        print("lpp: error: --check is mutually exclusive with --run and -o", file=sys.stderr)
+        sys.exit(1)
+
     try:
         with open(args.file) as f:
             source = f.read()
