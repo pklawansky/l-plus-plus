@@ -117,3 +117,13 @@ def test_watch_compiles_on_change():
         assert os.path.exists(out_path)
         assert "x = 1" in open(out_path).read()
 
+def test_syntax_error_has_rust_style_format():
+    path = write_lpp("def\n")  # parse error — no function name
+    try:
+        code, out, err = lpp(path, "--check")
+        assert code == 1
+        assert "-->" in err
+        assert "^" in err
+    finally:
+        os.unlink(path)
+
