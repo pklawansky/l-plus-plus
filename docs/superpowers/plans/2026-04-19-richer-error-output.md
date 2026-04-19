@@ -157,7 +157,7 @@ Expected: `ModuleNotFoundError: No module named 'lpp.errors'` or similar — all
 **Files:**
 - Create: `src/lpp/errors.py`
 
-- [ ] **Step 3: Write `src/lpp/errors.py`**
+- [x] **Step 3: Write `src/lpp/errors.py`**
 
 ```python
 # src/lpp/errors.py
@@ -222,7 +222,7 @@ def format_error(
     return "\n".join(parts)
 ```
 
-- [ ] **Step 4: Run tests to verify all 12 pass**
+- [x] **Step 4: Run tests to verify all 12 pass**
 
 ```
 pytest tests/test_errors.py -v
@@ -230,7 +230,7 @@ pytest tests/test_errors.py -v
 
 Expected: 12 passed.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/lpp/errors.py tests/test_errors.py
