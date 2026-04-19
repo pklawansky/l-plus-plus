@@ -244,7 +244,7 @@ git commit -m "feat(errors): add Rust-style diagnostic formatter with ANSI color
 **Files:**
 - Modify: `src/lpp/cli.py` (lines 7–27, 48, 71, 101, 222)
 
-- [ ] **Step 6: Update `src/lpp/cli.py`**
+- [x] **Step 6: Update `src/lpp/cli.py`**
 
 Replace the import block at the top of `cli.py` — change:
 
@@ -304,20 +304,22 @@ Change to:
 print(format_error("error", e, source, filename=args.file), file=sys.stderr)
 ```
 
-- [ ] **Step 7: Run the full test suite to verify nothing broke**
+- [x] **Step 7: Run the full test suite to verify nothing broke**
 
 ```
 pytest --tb=short -q
 ```
 
 Expected: all existing tests pass (304+).
+Result: 316 tests passed in 4.37s
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```bash
 git add src/lpp/cli.py
 git commit -m "refactor(cli): replace _format_error with format_error from errors module"
 ```
+Commit: 2ce74fe
 
 ---
 
