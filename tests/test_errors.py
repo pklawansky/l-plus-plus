@@ -49,7 +49,7 @@ def test_no_filename_in_location():
 def test_two_context_lines():
     err = FakeError("bad", line=4, col=1)
     result = format_error("error", err, SOURCE, use_color=False)
-    source_lines = [l for l in result.splitlines() if re.match(r'\s+\d+ \| ', l)]
+    source_lines = [l for l in result.splitlines() if re.match(r'\s*\d+ \| ', l)]
     assert len(source_lines) == 3
     assert any("second line" in l for l in source_lines)
     assert any("third line" in l for l in source_lines)
@@ -59,7 +59,7 @@ def test_two_context_lines():
 def test_context_clamped_at_start():
     err = FakeError("bad", line=1, col=1)
     result = format_error("error", err, SOURCE, use_color=False)
-    source_lines = [l for l in result.splitlines() if re.match(r'\s+\d+ \| ', l)]
+    source_lines = [l for l in result.splitlines() if re.match(r'\s*\d+ \| ', l)]
     assert len(source_lines) == 1
     assert "first line" in source_lines[0]
 
