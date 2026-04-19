@@ -6,25 +6,10 @@ import time
 import traceback
 from .lexer import LexError
 from .parser import ParseError
+from .errors import format_error
 from . import compile_lpp, __version__
 
 _LPP_MARKER = _re.compile(r"# lpp:(\d+)")
-
-
-def _format_error(label: str, err: Exception, source: str) -> str:
-    line = getattr(err, "line", None)
-    col = getattr(err, "col", None)
-    loc = f" at line {line}" if line else ""
-    if col is not None:
-        loc += f", col {col}"
-    lines = [f"lpp: {label}{loc}: {err}"]
-    if line and source:
-        src_lines = source.splitlines()
-        if 0 < line <= len(src_lines):
-            lines.append(f"  {src_lines[line - 1]}")
-            if col is not None:
-                lines.append(f"  {' ' * (col - 1)}^")
-    return "\n".join(lines)
 
 
 def _walk_lpp_files(src_dir: str):
@@ -45,7 +30,7 @@ def _check_dir(src_dir: str) -> bool:
                 source = f.read()
             compile_lpp(source)
         except (LexError, ParseError) as e:
-            print(_format_error(f"error in {src_path}", e, source), file=sys.stderr)
+            print(format_error("error", e, source, filename=src_path), file=sys.stderr)
             clean = False
         except Exception as e:
             print(f"lpp: internal error in {src_path}: {e}", file=sys.stderr)
@@ -68,7 +53,7 @@ def _compile_dir(src_dir: str, out_dir: str) -> bool:
             with open(out_path, "w") as f:
                 f.write(python_src)
         except (LexError, ParseError) as e:
-            print(_format_error(f"error in {src_path}", e, source), file=sys.stderr)
+            print(format_error("error", e, source, filename=src_path), file=sys.stderr)
             clean = False
         except Exception as e:
             print(f"lpp: internal error in {src_path}: {e}", file=sys.stderr)
@@ -99,7 +84,7 @@ def _watch(src: str, out_dir: str, interval: float) -> None:
             ts = time.strftime("%H:%M:%S")
             print(f"[{ts}] compiled {src_path} -> {out_path}")
         except (LexError, ParseError) as e:
-            print(_format_error(f"error in {src_path}", e, source), file=sys.stderr)
+            print(format_error("error", e, source, filename=src_path), file=sys.stderr)
         except Exception as e:
             print(f"lpp: internal error in {src_path}: {e}", file=sys.stderr)
 
@@ -219,7 +204,7 @@ def main() -> None:
     try:
         python_src = compile_lpp(source)
     except (LexError, ParseError) as e:
-        print(_format_error("error", e, source), file=sys.stderr)
+        print(format_error("error", e, source, filename=args.file), file=sys.stderr)
         sys.exit(1)
     except Exception as e:
         print(f"lpp: internal error: {e}", file=sys.stderr)
