@@ -123,7 +123,7 @@ def test_syntax_error_has_rust_style_format():
         code, out, err = lpp(path, "--check")
         assert code == 1
         assert "-->" in err
-        assert "^" in err
+        assert "^ expected" in err
     finally:
         os.unlink(path)
 
