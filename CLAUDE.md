@@ -18,4 +18,5 @@ When brainstorming approaches, go with the recommended option unless the user ex
 
 ## Implementation decisions
 
-When executing plans, always go with the Subagent-Driven option. Also, either /compact or /clear context prior to execution.
+- When executing plans, always go with the Subagent-Driven option. Also, either /compact or /clear context prior to execution.
+- After implementing, always perform a full suite of regression tests
