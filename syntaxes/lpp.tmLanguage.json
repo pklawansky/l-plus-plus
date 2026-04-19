@@ -48,7 +48,7 @@
       ]
     },
     "number": {
-      "match": "\\b\\d+(\\.\\d+)?\\b",
+      "match": "\\b\\d+(?:\\.\\d+)?\\b",
       "name": "constant.numeric.lpp"
     },
     "constant": {
@@ -76,7 +76,7 @@
       "name": "support.function.builtin.lpp"
     },
     "operator": {
-      "match": "(->|<<|[|&!])",
+      "match": "(->|<<|[|&~]|!(?!=))",
       "name": "keyword.operator.lpp"
     }
   }
