@@ -14,7 +14,7 @@ def _gutter_width(line_no: int) -> int:
 def format_error(
     label: str,
     err: Exception,
-    source: str,
+    source: str | None,
     filename: str | None = None,
     use_color: bool | None = None,
 ) -> str:
@@ -27,7 +27,7 @@ def format_error(
 
     parts = [f"{_ansi('1;31', f'{label}:', use_color)} {err}"]
 
-    if not line:
+    if line is None or line <= 0:
         return parts[0]
 
     loc_parts = []
