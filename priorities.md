@@ -132,7 +132,7 @@ Other deferred items:
 
 ## Enterprise Packaging — Layer 4: Editor Tooling (deferred)
 
-- **TextMate grammar** — syntax highlighting for VS Code / Sublime / GitHub.
+- **TextMate grammar** — `[ DONE ]` `syntaxes/lpp.tmLanguage.json` created; 10 token categories (comments, strings with `$...$` interpolation, numbers, constants, storage, control, keywords, self-attrs, built-ins, operators); JSON-validated. Manual VS Code verification still needed (human task).
 - **LSP** — go-to-definition and inline errors.
 
 ---
