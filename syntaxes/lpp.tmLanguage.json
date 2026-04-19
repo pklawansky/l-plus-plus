@@ -1,0 +1,83 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "L++",
+  "scopeName": "source.lpp",
+  "fileTypes": ["lpp"],
+  "patterns": [
+    { "include": "#comment" },
+    { "include": "#string" },
+    { "include": "#number" },
+    { "include": "#constant" },
+    { "include": "#storage" },
+    { "include": "#control" },
+    { "include": "#keyword" },
+    { "include": "#self-attr" },
+    { "include": "#builtin" },
+    { "include": "#operator" }
+  ],
+  "repository": {
+    "comment": {
+      "match": "#[^\\n]*",
+      "name": "comment.line.number-sign.lpp"
+    },
+    "string": {
+      "name": "string.quoted.double.lpp",
+      "begin": "\"",
+      "end": "\"",
+      "patterns": [
+        { "include": "#escape" },
+        { "include": "#interpolation" }
+      ]
+    },
+    "escape": {
+      "match": "\\\\[nt\"\\\\]",
+      "name": "constant.character.escape.lpp"
+    },
+    "interpolation": {
+      "name": "meta.interpolation.lpp",
+      "begin": "\\$",
+      "end": "\\$",
+      "beginCaptures": {
+        "0": { "name": "punctuation.definition.template-expression.begin.lpp" }
+      },
+      "endCaptures": {
+        "0": { "name": "punctuation.definition.template-expression.end.lpp" }
+      },
+      "patterns": [
+        { "include": "$self" }
+      ]
+    },
+    "number": {
+      "match": "\\b\\d+(\\.\\d+)?\\b",
+      "name": "constant.numeric.lpp"
+    },
+    "constant": {
+      "match": "\\b(None|True|False)\\b",
+      "name": "constant.language.lpp"
+    },
+    "storage": {
+      "match": "\\b(def|class)\\b",
+      "name": "storage.type.lpp"
+    },
+    "control": {
+      "match": "\\b(if|elif|else|for|in|while|return|break|continue|try|except|finally|raise|with|yield)\\b",
+      "name": "keyword.control.lpp"
+    },
+    "keyword": {
+      "match": "\\b(use|alias|as|from|global|nl|is|not|assert|del|pass)\\b",
+      "name": "keyword.other.lpp"
+    },
+    "self-attr": {
+      "match": "@[A-Za-z_]\\w*",
+      "name": "variable.other.readwrite.instance.lpp"
+    },
+    "builtin": {
+      "match": "\\b(p|l|r|s|i|f|b|t|li|di|se|tu|en|zi|ma|fi|so|rv|su|mn|mx|ab|ro|an|al|nx|ip|op|rp|ga|sa|ha|od|ch|pw|hx|isa|sc)\\b(?=\\s*[(!])",
+      "name": "support.function.builtin.lpp"
+    },
+    "operator": {
+      "match": "(->|<<|[|&!])",
+      "name": "keyword.operator.lpp"
+    }
+  }
+}
