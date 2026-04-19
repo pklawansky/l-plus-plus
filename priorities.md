@@ -119,8 +119,11 @@ Added `_watch` and reworked `main()` in `cli.py` with argv pre-check routing (av
 - **Task 2: Transpiler emits `# lpp:N` markers** — `[ DONE ]` Renamed `_stmt` → `_emit_stmt`, added wrapper that appends `  # lpp:N` to first line. Updated `py()` helper to strip markers for backward compatibility with existing tests. 3 new tests, 302/302 pass.
 - **Task 3: `--run` installs traceback rewriting hook** — `[ DONE ]` Added `_build_line_map` and `_install_run_hook` to `cli.py`; `--run` branch now installs a `sys.excepthook` that translates Python line numbers back to L++ source lines using `# lpp:N` markers. 1 new test, 304/304 pass.
 
+### Rust-style error output — `[ DONE ]`
+
+- **Task 4: Add CLI integration test** — `[ DONE ]` Added `test_syntax_error_has_rust_style_format()` to `tests/test_cli.py`. Tests that parse errors emit `-->` location pointer and `^` caret on stderr. 317/317 tests pass.
+
 Other deferred items:
-- **Richer error output** — formatted errors with source snippet and caret (partially done in `cli.py`; full Rust-style context pending).
 - **Watch mode** — covered in Layer 1.
 
 ## Enterprise Packaging — Layer 3: Type Annotations (deferred)
