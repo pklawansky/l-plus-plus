@@ -27,7 +27,7 @@ def format_error(
 
     parts = [f"{_ansi('1;31', f'{label}:', use_color)} {err}"]
 
-    if line is None:
+    if not line:
         return parts[0]
 
     loc_parts = []
@@ -38,7 +38,7 @@ def format_error(
         loc_parts.append(str(col))
     parts.append(f" {_ansi('1;36', '-->', use_color)} {':'.join(loc_parts)}")
 
-    src_lines = source.splitlines()
+    src_lines = source.splitlines() if source else []
     gw = _gutter_width(line)
     gp = " " * (gw + 1)
     pipe = _ansi("1;36", "|", use_color)
