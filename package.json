@@ -1,0 +1,14 @@
+{
+  "name": "lpp-syntax",
+  "displayName": "L++ Syntax",
+  "version": "0.1.0",
+  "engines": { "vscode": "^1.70.0" },
+  "contributes": {
+    "languages": [{ "id": "lpp", "extensions": [".lpp"] }],
+    "grammars": [{
+      "language": "lpp",
+      "scopeName": "source.lpp",
+      "path": "./syntaxes/lpp.tmLanguage.json"
+    }]
+  }
+}
