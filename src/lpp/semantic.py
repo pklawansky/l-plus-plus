@@ -77,6 +77,8 @@ def _check_stmt(stmt: Statement, scope: frozenset[str], errors: list[tuple[str, 
 
     if isinstance(stmt, FunctionDef):
         local: set[str] = set(scope)
+        if stmt.is_method:
+            local.add("self")
         local.update(p.name for p in stmt.params)
         for s in stmt.body:
             _collect_decls(s, local)
