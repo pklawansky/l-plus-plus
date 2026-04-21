@@ -4,6 +4,7 @@
 use functools:lru_cache
 use collections:defaultdict
 use dataclasses:dataclass
+use math:pow
 
 # ─── 1. Dataclass + property + dunder ────────────────────────────────────────
 
