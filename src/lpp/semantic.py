@@ -14,6 +14,7 @@ from .ast_nodes import (
 from .prelude import PRELUDE
 
 _BUILTINS: frozenset[str] = frozenset(PRELUDE) | frozenset({
+    "None", "True", "False",
     "Exception", "BaseException", "ValueError", "TypeError", "RuntimeError",
     "AttributeError", "KeyError", "IndexError", "StopIteration", "OSError",
     "FileNotFoundError", "PermissionError", "NotImplementedError",
