@@ -9,6 +9,7 @@ description = "A terse Python transpiler — write compact .lpp source, emit idi
 readme = "README.md"
 requires-python = ">=3.11"
 license = { text = "MIT" }
+dependencies = ["pygls>=1.3"]
 authors = [{ name = "Phillip Klawansky", email = "pklawansky@gmail.com" }]
 keywords = ["transpiler", "python", "llm", "code-generation"]
 classifiers = [
