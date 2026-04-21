@@ -79,6 +79,12 @@ _BUILTIN_DOCS: dict[str, str] = {
     "sc":  "sc(A, B) → issubclass(A, B)",
 }
 
+_KIND_MAP: dict[str, CompletionItemKind] = {
+    "function": CompletionItemKind.Function,
+    "class": CompletionItemKind.Class,
+    "variable": CompletionItemKind.Variable,
+}
+
 _KEYWORD_DOCS: dict[str, str] = {
     "def":      "def name(params): → define a function",
     "class":    "class Name: → define a class",
@@ -116,6 +122,7 @@ def _word_at(source: str, line: int, character: int) -> str:
     if line >= len(lines):
         return ""
     text = lines[line]
+    character = min(character, len(text))
     start = character
     while start > 0 and (text[start - 1].isalnum() or text[start - 1] == "_"):
         start -= 1
@@ -130,6 +137,7 @@ def _is_call_site(source: str, line: int, character: int) -> bool:
     if line >= len(lines):
         return False
     text = lines[line]
+    character = min(character, len(text))
     end = character
     while end < len(text) and (text[end].isalnum() or text[end] == "_"):
         end += 1
@@ -181,7 +189,7 @@ def did_open(ls: LanguageServer, params: DidOpenTextDocumentParams) -> None:
 @server.feature(TEXT_DOCUMENT_DID_CHANGE)
 def did_change(ls: LanguageServer, params: DidChangeTextDocumentParams) -> None:
     uri = params.text_document.uri
-    source = ls.workspace.get_text_document(uri).source
+    source = params.content_changes[-1].text
     _index.index_file(uri, source)
     _validate(ls, uri, source)
 
@@ -266,13 +274,8 @@ def completion(ls: LanguageServer, params: CompletionParams) -> CompletionList:
         _add(kw, CompletionItemKind.Keyword)
     for alias in PRELUDE:
         _add(alias, CompletionItemKind.Function)
-    _kind_map = {
-        "function": CompletionItemKind.Function,
-        "class": CompletionItemKind.Class,
-        "variable": CompletionItemKind.Variable,
-    }
     for sym in _index.all_symbols():
-        _add(sym.name, _kind_map.get(sym.kind, CompletionItemKind.Variable))
+        _add(sym.name, _KIND_MAP.get(sym.kind, CompletionItemKind.Variable))
     for name in local_names:
         _add(name, CompletionItemKind.Variable)
 
