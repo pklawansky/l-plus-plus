@@ -18,7 +18,8 @@ function activate(context) {
         serverOptions,
         clientOptions,
     );
-    context.subscriptions.push(client.start());
+    client.start();
+    context.subscriptions.push(client);
 }
 
 function deactivate() {
