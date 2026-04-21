@@ -35,6 +35,7 @@ from .prelude import PRELUDE
 from .tokens import KEYWORDS
 from .index import WorkspaceIndex
 from .scope import resolve_scope
+from .semantic import check_names
 
 server = LanguageServer("lpp-server", "v0.1")
 _index = WorkspaceIndex()
@@ -147,9 +148,23 @@ def _is_call_site(source: str, line: int, character: int) -> bool:
 
 def _validate(ls: LanguageServer, uri: str, source: str) -> None:
     diagnostics: list[Diagnostic] = []
+    src_lines = source.splitlines()
     try:
         tokens = Lexer(source).tokenize()
-        Parser(tokens).parse()
+        tree = Parser(tokens).parse()
+        for name, ln in check_names(tree):
+            ln_0 = max(ln - 1, 0)
+            col_end = len(src_lines[ln_0]) if ln_0 < len(src_lines) else 0
+            diagnostics.append(
+                Diagnostic(
+                    range=Range(
+                        start=Position(line=ln_0, character=0),
+                        end=Position(line=ln_0, character=col_end),
+                    ),
+                    message=f"Undefined name '{name}'",
+                    severity=DiagnosticSeverity.Error,
+                )
+            )
     except (LexError, ParseError) as e:
         ln = max((e.line or 1) - 1, 0)
         col = max((e.col or 1) - 1, 0)
