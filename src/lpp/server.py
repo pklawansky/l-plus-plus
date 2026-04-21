@@ -26,6 +26,7 @@ from lsprotocol.types import (
     MarkupContent,
     MarkupKind,
     Position,
+    PublishDiagnosticsParams,
     Range,
 )
 from .lexer import Lexer, LexError
@@ -162,7 +163,7 @@ def _validate(ls: LanguageServer, uri: str, source: str) -> None:
                 severity=DiagnosticSeverity.Error,
             )
         )
-    ls.publish_diagnostics(uri, diagnostics)
+    ls.text_document_publish_diagnostics(PublishDiagnosticsParams(uri=uri, diagnostics=diagnostics))
 
 
 @server.feature(INITIALIZED)
