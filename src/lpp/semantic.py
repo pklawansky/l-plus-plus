@@ -15,6 +15,10 @@ from .prelude import PRELUDE
 
 _BUILTINS: frozenset[str] = frozenset(PRELUDE) | frozenset({
     "None", "True", "False",
+    # Python built-in types usable as callables (e.g. defaultdict(int))
+    "int", "str", "float", "bool", "list", "dict", "set", "tuple",
+    "bytes", "bytearray", "complex", "type", "object", "super",
+    "NotImplemented", "Ellipsis",
     "Exception", "BaseException", "ValueError", "TypeError", "RuntimeError",
     "AttributeError", "KeyError", "IndexError", "StopIteration", "OSError",
     "FileNotFoundError", "PermissionError", "NotImplementedError",
