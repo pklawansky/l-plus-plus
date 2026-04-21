@@ -16,11 +16,17 @@ def resolve_scope(tree: Program, line: int) -> list[str]:
     - ClassDef     → method names + class-level assignment targets.
     - Module level → all top-level function/class names + top-level variables.
     """
+    top_level = [
+        (n, n.line or 0)
+        for n in tree.body
+        if isinstance(n, (FunctionDef, ClassDef))
+    ]
     enclosing = None
-    for node in tree.body:
-        if isinstance(node, (FunctionDef, ClassDef)):
-            if (node.line or 0) <= line:
-                enclosing = node
+    for i, (node, start) in enumerate(top_level):
+        end = top_level[i + 1][1] - 1 if i + 1 < len(top_level) else float("inf")
+        if start <= line <= end:
+            enclosing = node
+            break
 
     if enclosing is None:
         # Module-level scope

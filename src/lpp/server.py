@@ -189,7 +189,7 @@ def did_open(ls: LanguageServer, params: DidOpenTextDocumentParams) -> None:
 @server.feature(TEXT_DOCUMENT_DID_CHANGE)
 def did_change(ls: LanguageServer, params: DidChangeTextDocumentParams) -> None:
     uri = params.text_document.uri
-    source = params.content_changes[-1].text
+    source = ls.workspace.get_text_document(uri).source
     _index.index_file(uri, source)
     _validate(ls, uri, source)
 
