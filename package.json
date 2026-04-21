@@ -1,8 +1,13 @@
 {
   "name": "lpp-syntax",
   "displayName": "L++ Syntax",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "engines": { "vscode": "^1.70.0" },
+  "main": "client/extension.js",
+  "activationEvents": ["onLanguage:lpp"],
+  "dependencies": {
+    "vscode-languageclient": "^9.0.0"
+  },
   "contributes": {
     "languages": [{ "id": "lpp", "extensions": [".lpp"] }],
     "grammars": [{
