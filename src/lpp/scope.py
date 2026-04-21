@@ -57,6 +57,8 @@ def _collect_body_names(body: list[Statement], names: list[str]) -> None:
         elif isinstance(node, ForStatement):
             names.extend(node.targets)
             _collect_body_names(node.body, names)
+            if node.else_body:
+                _collect_body_names(node.else_body, names)
         elif isinstance(node, FunctionDef):
             names.append(node.name)
         elif isinstance(node, IfStatement):
@@ -65,12 +67,16 @@ def _collect_body_names(body: list[Statement], names: list[str]) -> None:
                 _collect_body_names(elif_body, names)
         elif isinstance(node, DoStatement):
             _collect_body_names(node.body, names)
+            if node.else_body:
+                _collect_body_names(node.else_body, names)
         elif isinstance(node, TryStatement):
             _collect_body_names(node.body, names)
             for handler in node.handlers:
                 if handler.name:
                     names.append(handler.name)
                 _collect_body_names(handler.body, names)
+            if node.finally_body:
+                _collect_body_names(node.finally_body, names)
         elif isinstance(node, WithStatement):
             for _expr, name in node.items:
                 if name:
