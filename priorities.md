@@ -133,7 +133,7 @@ Other deferred items:
 ## Enterprise Packaging — Layer 4: Editor Tooling (deferred)
 
 - **TextMate grammar** — `[ DONE ]` `syntaxes/lpp.tmLanguage.json` created; 10 token categories (comments, strings with `$...$` interpolation, numbers, constants, storage, control, keywords, self-attrs, built-ins, operators); JSON-validated and manually verified in VS Code.
-- **LSP** — `[ DONE ]` pygls server (`src/lpp/server.py`) + VS Code client (`client/extension.js`) providing diagnostics, hover, go-to-definition, and completions; workspace symbol index and scope resolver added; pending manual VS Code verification.
+- **LSP** — `[ DONE ]` pygls server (`src/lpp/server.py`) + VS Code client (`client/extension.js`) providing diagnostics (syntax + undeclared variable detection), hover, go-to-definition, and completions; workspace symbol index and scope resolver added; manually verified in VS Code.
 
 ---
 
