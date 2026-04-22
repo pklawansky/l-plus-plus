@@ -532,7 +532,6 @@ class Parser:
         if paren_wrapped:
             self.advance()  # consume (
         params = []
-        stop_types = (TokenType.RPAREN,) if paren_wrapped else ()
         while self.match(TokenType.IDENT, TokenType.STAR, TokenType.STARSTAR):
             if self.match(TokenType.STARSTAR):
                 self.advance()
