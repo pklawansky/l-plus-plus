@@ -551,3 +551,22 @@ def test_lpp_marker_on_decorated_fn():
     out = compile_lpp("@staticmethod\ndef foo x\n  x\n")
     dec_line = next(l for l in out.splitlines() if "@staticmethod" in l)
     assert "  # lpp:1" in dec_line
+
+# Type annotations (item 24+)
+def test_annotated_param():
+    assert py("def f(x::int)\n    x\n") == "def f(x: int):\n    return x"
+
+def test_return_annotation():
+    assert py("def f()::bool\n    True\n") == "def f() -> bool:\n    return True"
+
+def test_param_and_return_annotation():
+    result = py("def f(x::int, y::str)::bool\n    True\n")
+    assert result == "def f(x: int, y: str) -> bool:\n    return True"
+
+def test_annotated_param_with_default():
+    result = py("def f(x::int = 0)\n    x\n")
+    assert result == "def f(x: int = 0):\n    return x"
+
+def test_annotated_varargs():
+    result = py("def f(*args::int)\n    args\n")
+    assert result == "def f(*args: int):\n    return args"
