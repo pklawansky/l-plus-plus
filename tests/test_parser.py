@@ -774,3 +774,32 @@ def test_decorated_functiondef_line_is_decorator_line():
     tokens = Lexer("@staticmethod\ndef foo x\n  x\n").tokenize()
     prog = Parser(tokens).parse()
     assert prog.body[0].line == 1     # @ is on line 1
+
+# --- :: annotation tests ---
+
+def parse_stmts(src: str):
+    tokens = Lexer(src).tokenize()
+    return Parser(tokens).parse().body
+
+def test_param_annotation_simple():
+    stmts = parse_stmts("def f(x::int)\n    x\n")
+    assert stmts[0].params[0].annotation == Name("int")
+
+def test_param_annotation_complex():
+    stmts = parse_stmts("def f(items::list[int])\n    items\n")
+    assert stmts[0].params[0].annotation == Subscript(Name("list"), Name("int"))
+
+def test_return_annotation():
+    stmts = parse_stmts("def f()::bool\n    True\n")
+    assert stmts[0].return_annotation == Name("bool")
+
+def test_param_and_return_annotation():
+    stmts = parse_stmts("def f(x::int)::str\n    s(x)\n")
+    fn = stmts[0]
+    assert fn.params[0].annotation == Name("int")
+    assert fn.return_annotation == Name("str")
+
+def test_param_no_annotation_unchanged():
+    stmts = parse_stmts("def f(x)\n    x\n")
+    assert stmts[0].params[0].annotation is None
+    assert stmts[0].return_annotation is None

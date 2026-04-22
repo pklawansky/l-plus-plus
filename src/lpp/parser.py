@@ -518,28 +518,53 @@ class Parser:
             self.advance()
         name = self.expect(TokenType.IDENT).value
         params = self._parse_params()
+        return_annotation = None
+        if self.match(TokenType.COLONCOLON):
+            self.advance()
+            return_annotation = self.parse_expression()
         self.skip_newlines()
         body = self._parse_block()
-        return FunctionDef(name, params, body, is_method, decorators)
+        return FunctionDef(name, params, body, is_method, decorators, return_annotation)
 
     def _parse_params(self) -> list[Param]:
+        # Optional parentheses: def f(x::int, y) or def f x y
+        paren_wrapped = self.match(TokenType.LPAREN)
+        if paren_wrapped:
+            self.advance()  # consume (
         params = []
+        stop_types = (TokenType.RPAREN,) if paren_wrapped else ()
         while self.match(TokenType.IDENT, TokenType.STAR, TokenType.STARSTAR):
             if self.match(TokenType.STARSTAR):
                 self.advance()
                 pname = self.expect(TokenType.IDENT).value
-                params.append(Param(pname, kind="kw"))
+                annotation = None
+                if self.match(TokenType.COLONCOLON):
+                    self.advance()
+                    annotation = self.parse_expression()
+                params.append(Param(pname, kind="kw", annotation=annotation))
             elif self.match(TokenType.STAR):
                 self.advance()
                 pname = self.expect(TokenType.IDENT).value
-                params.append(Param(pname, kind="var"))
+                annotation = None
+                if self.match(TokenType.COLONCOLON):
+                    self.advance()
+                    annotation = self.parse_expression()
+                params.append(Param(pname, kind="var", annotation=annotation))
             else:
                 pname = self.advance().value
+                annotation = None
+                if self.match(TokenType.COLONCOLON):
+                    self.advance()
+                    annotation = self.parse_expression()
                 default = None
                 if self.match(TokenType.EQ):
                     self.advance()
                     default = self.parse_expression()
-                params.append(Param(pname, default))
+                params.append(Param(pname, default, annotation=annotation))
+            if paren_wrapped and self.match(TokenType.COMMA):
+                self.advance()
+        if paren_wrapped:
+            self.expect(TokenType.RPAREN)
         return params
 
     def _parse_class(self, decorators=None) -> ClassDef:
