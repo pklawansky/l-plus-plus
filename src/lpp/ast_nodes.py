@@ -17,7 +17,7 @@ Statement = Union[
     "BreakStatement", "ContinueStatement", "RaiseStatement",
     "WithStatement", "GlobalStatement", "NonlocalStatement",
     "UnpackAssignment", "AssertStatement", "DelStatement", "PassStatement",
-    "YieldStatement",
+    "YieldStatement", "AnnotationStatement",
 ]
 
 @dataclass
@@ -33,6 +33,7 @@ class FunctionDef:
     body: list[Statement]
     is_method: bool
     decorators: list = field(default_factory=list)
+    return_annotation: "Expression | None" = None
     line: int | None = None
 
 @dataclass
@@ -40,6 +41,7 @@ class Param:
     name: str
     default: Expression | None = None
     kind: str = "pos"  # "pos", "var" (*args), "kw" (**kwargs)
+    annotation: Expression | None = None
 
 @dataclass
 class ClassDef:
@@ -53,6 +55,7 @@ class ClassDef:
 class Assignment:
     target: str | Expression    # str for simple names; Expression for subscript/attribute
     value: Expression
+    annotation: Expression | None = None
     line: int | None = None
 
 @dataclass
@@ -186,6 +189,12 @@ class PassStatement:
 class YieldStatement:
     value: "Expression | None"   # None = bare yield
     is_from: bool = False        # True = yield from
+    line: int | None = None
+
+@dataclass
+class AnnotationStatement:
+    target: str | Expression
+    annotation: Expression
     line: int | None = None
 
 # --- Expressions ---
