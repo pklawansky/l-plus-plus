@@ -531,6 +531,18 @@ def test_parse_slice_step():
     result = parse_expr("lst[::2]")
     assert result == Subscript(Name("lst"), Slice(None, None, NumberLiteral(2)))
 
+def test_slice_empty_start_stop():
+    # Explicitly verify that :: (COLONCOLON token) maps both start and stop to None,
+    # with the value after :: becoming the step.  This directly exercises the
+    # COLONCOLON branch added to _parse_subscript_key.
+    result = parse_expr("a[::2]")
+    assert isinstance(result, Subscript)
+    assert result.obj == Name("a")
+    assert isinstance(result.key, Slice)
+    assert result.key.start is None
+    assert result.key.stop is None
+    assert result.key.step == NumberLiteral(2)
+
 def test_parse_slice_open_end():
     result = parse_expr("lst[1:]")
     assert result == Subscript(Name("lst"), Slice(NumberLiteral(1), None, None))

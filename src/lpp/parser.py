@@ -266,15 +266,16 @@ class Parser:
         return self._parse_postfix()
 
     def _parse_subscript_key(self) -> Expression:
-        # Handle :: (COLONCOLON) as two colons for slicing
+        # Handle :: (COLONCOLON) as two colons for slicing: lst[::step]
+        # Both start and stop are implicitly None; the token after :: is the step
+        # value (e.g. lst[::2]) or ] for a bare lst[::].
         if self.match(TokenType.COLONCOLON):
             start = None
-            self.advance()  # consume the ::, which acts like two colons
-            # After ::, next token is either another colon (making it ::: for step)
-            # or it's the step value or ]
+            self.advance()  # consume ::
             stop = None
             step = None
             if self.match(TokenType.COLON):
+                # lst[:::] — bare third colon with no step expression
                 self.advance()
                 step = None if self.match(TokenType.RBRACKET) else self.parse_expression()
             elif not self.match(TokenType.RBRACKET):
