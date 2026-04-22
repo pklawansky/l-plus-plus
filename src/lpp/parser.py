@@ -876,6 +876,21 @@ class Parser:
 
         # Path 3: expression, then check for assignment/aug-assignment/append
         expr = self.parse_expression()
+
+        # Type annotation: x::type = val  OR  x::type (bare declaration)
+        if self.peek_type() == TokenType.COLONCOLON:
+            self.advance()
+            annotation = self.parse_expression()
+            if self.peek_type() == TokenType.EQ:
+                self.advance()
+                value = self._parse_stmt_tuple()
+                if self.match(TokenType.NEWLINE): self.advance()
+                target = expr.id if isinstance(expr, Name) else expr
+                return Assignment(target, value, annotation=annotation)
+            if self.match(TokenType.NEWLINE): self.advance()
+            target = expr.id if isinstance(expr, Name) else expr
+            return AnnotationStatement(target, annotation)
+
         AUG = {
             TokenType.PLUSEQ: "+=", TokenType.MINUSEQ: "-=",
             TokenType.STAREQ: "*=", TokenType.SLASHEQ: "/=", TokenType.PERCENTEQ: "%=",

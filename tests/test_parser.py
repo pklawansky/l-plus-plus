@@ -803,3 +803,30 @@ def test_param_no_annotation_unchanged():
     stmts = parse_stmts("def f(x)\n    x\n")
     assert stmts[0].params[0].annotation is None
     assert stmts[0].return_annotation is None
+
+def test_annotated_assignment():
+    stmts = parse_stmts("x::int = 5\n")
+    stmt = stmts[0]
+    assert isinstance(stmt, Assignment)
+    assert stmt.target == "x"
+    assert stmt.annotation == Name("int")
+    assert stmt.value == NumberLiteral(5)
+
+def test_bare_annotation_statement():
+    stmts = parse_stmts("x::int\n")
+    stmt = stmts[0]
+    assert isinstance(stmt, AnnotationStatement)
+    assert stmt.target == "x"
+    assert stmt.annotation == Name("int")
+
+def test_annotated_complex_type():
+    stmts = parse_stmts("items::list[str] = []\n")
+    stmt = stmts[0]
+    assert isinstance(stmt, Assignment)
+    assert stmt.annotation == Subscript(Name("list"), Name("str"))
+
+def test_annotated_dict_type():
+    stmts = parse_stmts("mapping::dict[str, int] = {}\n")
+    stmt = stmts[0]
+    assert isinstance(stmt, Assignment)
+    assert stmt.annotation == Subscript(Name("dict"), Tuple([Name("str"), Name("int")]))
