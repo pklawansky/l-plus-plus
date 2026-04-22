@@ -590,3 +590,21 @@ def test_self_attr_annotated_assignment():
 def test_self_attr_bare_annotation():
     result = py("def @init()\n    @count::int\n")
     assert "self.count: int" in result
+
+def test_annotation_defines_name_in_scope():
+    from lpp.lexer import Lexer
+    from lpp.parser import Parser
+    from lpp.semantic import check_names
+    src = "x::int\nx = 5\n"
+    tree = Parser(Lexer(src).tokenize()).parse()
+    errors = check_names(tree)
+    assert errors == [], f"Unexpected undeclared-name errors: {errors}"
+
+def test_annotation_annotation_expr_checked():
+    from lpp.lexer import Lexer
+    from lpp.parser import Parser
+    from lpp.semantic import check_names
+    src = "x::MyType\n"
+    tree = Parser(Lexer(src).tokenize()).parse()
+    errors = check_names(tree)
+    assert any(name == "MyType" for name, _ in errors)

@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from .lexer import Lexer, LexError
 from .parser import Parser, ParseError
-from .ast_nodes import Program, FunctionDef, ClassDef, Assignment
+from .ast_nodes import Program, FunctionDef, ClassDef, Assignment, AnnotationStatement
 
 
 @dataclass
@@ -22,6 +22,8 @@ def _extract_symbols(tree: Program, uri: str) -> list[Symbol]:
         elif isinstance(node, ClassDef):
             symbols.append(Symbol(node.name, "class", uri, node.line or 1))
         elif isinstance(node, Assignment) and isinstance(node.target, str):
+            symbols.append(Symbol(node.target, "variable", uri, node.line or 1))
+        elif isinstance(node, AnnotationStatement) and isinstance(node.target, str):
             symbols.append(Symbol(node.target, "variable", uri, node.line or 1))
     return symbols
 
