@@ -266,6 +266,23 @@ class Parser:
         return self._parse_postfix()
 
     def _parse_subscript_key(self) -> Expression:
+        # Handle :: (COLONCOLON) as two colons for slicing
+        if self.match(TokenType.COLONCOLON):
+            start = None
+            self.advance()  # consume the ::, which acts like two colons
+            # After ::, next token is either another colon (making it ::: for step)
+            # or it's the step value or ]
+            stop = None
+            step = None
+            if self.match(TokenType.COLON):
+                self.advance()
+                step = None if self.match(TokenType.RBRACKET) else self.parse_expression()
+            elif not self.match(TokenType.RBRACKET):
+                # The value after :: is the step (no colon before it)
+                step = self.parse_expression()
+            self.expect(TokenType.RBRACKET)
+            return Slice(start, stop, step)
+
         if self.match(TokenType.COLON):
             start = None
         else:
