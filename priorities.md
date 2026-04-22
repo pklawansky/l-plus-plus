@@ -128,14 +128,9 @@ Other deferred items:
 
 ## Enterprise Packaging — Layer 3: Type Annotations
 
-### Type annotation syntax — `[ IN PROGRESS ]`
+### Type annotation syntax — `[ DONE ]`
 
-- **Task 1: Lexer** — `[ DONE ]` Added `COLONCOLON` token (`::`).
-- **Task 2: AST** — `[ DONE ]` Added `annotation` field to `Assignment` and `Param`; added `AnnotationStatement` node.
-- **Task 3: Params & return types** — `[ DONE ]` Parser handles `f(x::int)` and `f()::bool` syntax.
-- **Task 4: Variable declarations** — `[ DONE ]` Parser handles `x::int = 5` (annotated assignment) and `x::int` (bare annotation).
-- **Task 5: Augmented assignments** — `[ DONE ]` Parser handles `x += y` with no annotation (no type for aug assignments).
-- **Task 6: Self-attr annotations** — `[ DONE ]` Parser handles `@attr::type = val` and `@attr::type` (bare). 347/347 tests pass.
+`::` annotation operator: variable annotations (`x::int = 5`, `x::int`), param annotations (`f(x::int)`), return annotations (`f()::bool`), self-attr annotations (`@x::str = "hi"`), generic types (`dict[str, int]`). Transpiles verbatim to Python type hints. Semantic checker validates annotation expressions; workspace index includes annotated names. 363/363 tests pass.
 
 ## Enterprise Packaging — Layer 4: Editor Tooling (deferred)
 
