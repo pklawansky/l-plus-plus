@@ -29,7 +29,12 @@ class Transpiler:
                 return self._cls(node, depth)
             case Assignment(target, value):
                 tgt = target if isinstance(target, str) else self._expr(target)
+                if node.annotation is not None:
+                    return f"{pad}{tgt}: {self._expr(node.annotation)} = {self._expr(value)}"
                 return f"{pad}{tgt} = {self._expr(value)}"
+            case AnnotationStatement(target, annotation):
+                tgt = target if isinstance(target, str) else self._expr(target)
+                return f"{pad}{tgt}: {self._expr(annotation)}"
             case AugAssignment(target, op, value):
                 tgt = target if isinstance(target, str) else self._expr(target)
                 return f"{pad}{tgt} {op} {self._expr(value)}"

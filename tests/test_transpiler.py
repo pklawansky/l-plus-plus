@@ -570,3 +570,23 @@ def test_annotated_param_with_default():
 def test_annotated_varargs():
     result = py("def f(*args::int)\n    args\n")
     assert result == "def f(*args: int):\n    return args"
+
+def test_annotated_variable():
+    assert py("x::int = 5\n") == "x: int = 5"
+
+def test_bare_annotation():
+    assert py("x::int\n") == "x: int"
+
+def test_annotated_complex_type():
+    assert py("items::list[str] = []\n") == "items: list[str] = []"
+
+def test_annotated_dict_type():
+    assert py("mapping::dict[str, int] = {}\n") == "mapping: dict[str, int] = {}"
+
+def test_self_attr_annotated_assignment():
+    result = py("def @init()\n    @name::str = \"hi\"\n")
+    assert "self.name: str = \"hi\"" in result
+
+def test_self_attr_bare_annotation():
+    result = py("def @init()\n    @count::int\n")
+    assert "self.count: int" in result
