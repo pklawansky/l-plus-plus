@@ -924,12 +924,15 @@ class Parser:
         return ExprStatement(expr)
 
     def _try_parse_self_attr_assign(self) -> Statement | None:
-        """Try to parse @attr = expr or @attr op= expr. Returns None if the
-        @ token is not followed by an assignment operator (bare SelfAttr read)."""
+        """Try to parse @attr = expr, @attr op= expr, @attr::type = expr, or @attr::type."""
         save = self.pos
         try:
             self.advance()  # consume @
             attr = self.expect(TokenType.IDENT).value
+            annotation = None
+            if self.peek_type() == TokenType.COLONCOLON:
+                self.advance()
+                annotation = self.parse_expression()
             AUG = {
                 TokenType.PLUSEQ: "+=", TokenType.MINUSEQ: "-=",
                 TokenType.STAREQ: "*=", TokenType.SLASHEQ: "/=", TokenType.PERCENTEQ: "%=",
@@ -943,7 +946,10 @@ class Parser:
                 self.advance()
                 value = self.parse_expression()
                 if self.match(TokenType.NEWLINE): self.advance()
-                return Assignment(f"self.{attr}", value)
+                return Assignment(f"self.{attr}", value, annotation=annotation)
+            if annotation is not None:
+                if self.match(TokenType.NEWLINE): self.advance()
+                return AnnotationStatement(f"self.{attr}", annotation)
             self.pos = save
             return None
         except ParseError:

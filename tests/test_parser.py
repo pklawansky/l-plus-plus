@@ -830,3 +830,18 @@ def test_annotated_dict_type():
     stmt = stmts[0]
     assert isinstance(stmt, Assignment)
     assert stmt.annotation == Subscript(Name("dict"), Tuple([Name("str"), Name("int")]))
+
+def test_self_attr_annotated_assignment():
+    stmts = parse_stmts("@name::str = \"Alice\"\n")
+    stmt = stmts[0]
+    assert isinstance(stmt, Assignment)
+    assert stmt.target == "self.name"
+    assert stmt.annotation == Name("str")
+    assert stmt.value == StringLiteral(["Alice"])
+
+def test_self_attr_bare_annotation():
+    stmts = parse_stmts("@count::int\n")
+    stmt = stmts[0]
+    assert isinstance(stmt, AnnotationStatement)
+    assert stmt.target == "self.count"
+    assert stmt.annotation == Name("int")
