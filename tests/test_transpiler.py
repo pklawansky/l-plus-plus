@@ -608,3 +608,36 @@ def test_annotation_annotation_expr_checked():
     tree = Parser(Lexer(src).tokenize()).parse()
     errors = check_names(tree)
     assert any(name == "MyType" for name, _ in errors)
+
+
+def test_assignment_annotation_expr_checked():
+    """Assignment annotation x::MyType = 5 should flag undeclared MyType."""
+    from lpp.lexer import Lexer
+    from lpp.parser import Parser
+    from lpp.semantic import check_names
+    src = "x::MyType = 5\n"
+    tree = Parser(Lexer(src).tokenize()).parse()
+    errors = check_names(tree)
+    assert any(name == "MyType" for name, _ in errors)
+
+
+def test_param_annotation_expr_checked():
+    """Param annotation def f(x::MyType) should flag undeclared MyType."""
+    from lpp.lexer import Lexer
+    from lpp.parser import Parser
+    from lpp.semantic import check_names
+    src = "def f(x::MyType)\n    pass\n"
+    tree = Parser(Lexer(src).tokenize()).parse()
+    errors = check_names(tree)
+    assert any(name == "MyType" for name, _ in errors)
+
+
+def test_return_annotation_expr_checked():
+    """Return annotation def f()::MyType should flag undeclared MyType."""
+    from lpp.lexer import Lexer
+    from lpp.parser import Parser
+    from lpp.semantic import check_names
+    src = "def f()::MyType\n    pass\n"
+    tree = Parser(Lexer(src).tokenize()).parse()
+    errors = check_names(tree)
+    assert any(name == "MyType" for name, _ in errors)
