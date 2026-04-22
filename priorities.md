@@ -1,6 +1,6 @@
 # L++ Work Priorities
 
-*Last updated: 2026-04-18 (session 8)*
+*Last updated: 2026-04-22 (session 9)*
 
 ---
 
@@ -126,9 +126,16 @@ Added `_watch` and reworked `main()` in `cli.py` with argv pre-check routing (av
 Other deferred items:
 - **Watch mode** — covered in Layer 1.
 
-## Enterprise Packaging — Layer 3: Type Annotations (deferred)
+## Enterprise Packaging — Layer 3: Type Annotations
 
-- **Type annotation syntax** — `x: int`, `def f(x: int) -> str:` require a design decision since `:` conflicts with class-base syntax. Candidate: `x::int`.
+### Type annotation syntax — `[ IN PROGRESS ]`
+
+- **Task 1: Lexer** — `[ DONE ]` Added `COLONCOLON` token (`::`).
+- **Task 2: AST** — `[ DONE ]` Added `annotation` field to `Assignment` and `Param`; added `AnnotationStatement` node.
+- **Task 3: Params & return types** — `[ DONE ]` Parser handles `f(x::int)` and `f()::bool` syntax.
+- **Task 4: Variable declarations** — `[ DONE ]` Parser handles `x::int = 5` (annotated assignment) and `x::int` (bare annotation).
+- **Task 5: Augmented assignments** — `[ DONE ]` Parser handles `x += y` with no annotation (no type for aug assignments).
+- **Task 6: Self-attr annotations** — `[ DONE ]` Parser handles `@attr::type = val` and `@attr::type` (bare). 347/347 tests pass.
 
 ## Enterprise Packaging — Layer 4: Editor Tooling (deferred)
 
