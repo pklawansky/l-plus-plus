@@ -266,37 +266,50 @@ class Parser:
         return self._parse_postfix()
 
     def _parse_subscript_key(self) -> Expression:
-        # Handle :: (COLONCOLON) as two colons for slicing: lst[::step]
-        # Both start and stop are implicitly None; the token after :: is the step
-        # value (e.g. lst[::2]) or ] for a bare lst[::].
+        # Handle leading :: (COLONCOLON) for slices like a[::2]
         if self.match(TokenType.COLONCOLON):
-            start = None
-            self.advance()  # consume ::
-            stop = None
-            step = None
-            if self.match(TokenType.COLON):
-                # lst[:::] — bare third colon with no step expression
-                self.advance()
-                step = None if self.match(TokenType.RBRACKET) else self.parse_expression()
-            elif not self.match(TokenType.RBRACKET):
-                # The value after :: is the step (no colon before it)
-                step = self.parse_expression()
+            self.advance()
+            step = None if self.match(TokenType.RBRACKET) else self.parse_expression()
             self.expect(TokenType.RBRACKET)
-            return Slice(start, stop, step)
+            return Slice(None, None, step)
 
         if self.match(TokenType.COLON):
             start = None
         else:
             start = self.parse_expression()
-        if not self.match(TokenType.COLON):
+
+        if not self.match(TokenType.COLON, TokenType.COLONCOLON):
+            # Comma-separated tuple key: dict[str, int]
+            if self.match(TokenType.COMMA):
+                elements = [start]
+                while self.match(TokenType.COMMA):
+                    self.advance()
+                    if self.match(TokenType.RBRACKET):
+                        break
+                    elements.append(self.parse_expression())
+                self.expect(TokenType.RBRACKET)
+                return Tuple(elements)
             self.expect(TokenType.RBRACKET)
             return start
-        self.advance()
-        stop = None if self.match(TokenType.COLON, TokenType.RBRACKET) else self.parse_expression()
-        step = None
-        if self.match(TokenType.COLON):
+
+        # Slice: consume the separator (: or ::)
+        if self.match(TokenType.COLONCOLON):
+            # x:: means stop=None, next token is step (e.g. a[1::2])
             self.advance()
+            stop = None
             step = None if self.match(TokenType.RBRACKET) else self.parse_expression()
+        else:
+            # x: — normal single colon
+            self.advance()
+            stop = None if self.match(TokenType.COLON, TokenType.COLONCOLON, TokenType.RBRACKET) else self.parse_expression()
+            step = None
+            if self.match(TokenType.COLON):
+                self.advance()
+                step = None if self.match(TokenType.RBRACKET) else self.parse_expression()
+            elif self.match(TokenType.COLONCOLON):
+                self.advance()
+                step = None if self.match(TokenType.RBRACKET) else self.parse_expression()
+
         self.expect(TokenType.RBRACKET)
         return Slice(start, stop, step)
 

@@ -555,6 +555,11 @@ def test_parse_slice_full():
     result = parse_expr("lst[1:5:2]")
     assert result == Subscript(Name("lst"), Slice(NumberLiteral(1), NumberLiteral(5), NumberLiteral(2)))
 
+def test_subscript_multi_arg():
+    # dict[str, int] — comma inside [] produces Tuple key
+    result = parse_expr("dict[str, int]")
+    assert result == Subscript(Name("dict"), Tuple([Name("str"), Name("int")]))
+
 # *args / **kwargs in function params
 def test_parse_params_star_args():
     node = first("def f *args\n  args\n")
