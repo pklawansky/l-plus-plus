@@ -937,7 +937,7 @@ class Parser:
                 TokenType.PLUSEQ: "+=", TokenType.MINUSEQ: "-=",
                 TokenType.STAREQ: "*=", TokenType.SLASHEQ: "/=", TokenType.PERCENTEQ: "%=",
             }
-            if self.peek_type() in AUG:
+            if annotation is None and self.peek_type() in AUG:
                 op = AUG[self.advance().type]
                 value = self.parse_expression()
                 if self.match(TokenType.NEWLINE): self.advance()
