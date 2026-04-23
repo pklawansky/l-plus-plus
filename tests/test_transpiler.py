@@ -551,3 +551,93 @@ def test_lpp_marker_on_decorated_fn():
     out = compile_lpp("@staticmethod\ndef foo x\n  x\n")
     dec_line = next(l for l in out.splitlines() if "@staticmethod" in l)
     assert "  # lpp:1" in dec_line
+
+# Type annotations (item 24+)
+def test_annotated_param():
+    assert py("def f(x::int)\n    x\n") == "def f(x: int):\n    return x"
+
+def test_return_annotation():
+    assert py("def f()::bool\n    True\n") == "def f() -> bool:\n    return True"
+
+def test_param_and_return_annotation():
+    result = py("def f(x::int, y::str)::bool\n    True\n")
+    assert result == "def f(x: int, y: str) -> bool:\n    return True"
+
+def test_annotated_param_with_default():
+    result = py("def f(x::int = 0)\n    x\n")
+    assert result == "def f(x: int = 0):\n    return x"
+
+def test_annotated_varargs():
+    result = py("def f(*args::int)\n    args\n")
+    assert result == "def f(*args: int):\n    return args"
+
+def test_annotated_variable():
+    assert py("x::int = 5\n") == "x: int = 5"
+
+def test_bare_annotation():
+    assert py("x::int\n") == "x: int"
+
+def test_annotated_complex_type():
+    assert py("items::list[str] = []\n") == "items: list[str] = []"
+
+def test_annotated_dict_type():
+    assert py("mapping::dict[str, int] = {}\n") == "mapping: dict[str, int] = {}"
+
+def test_self_attr_annotated_assignment():
+    result = py("def @init()\n    @name::str = \"hi\"\n")
+    assert "self.name: str = \"hi\"" in result
+
+def test_self_attr_bare_annotation():
+    result = py("def @init()\n    @count::int\n")
+    assert "self.count: int" in result
+
+def test_annotation_defines_name_in_scope():
+    from lpp.lexer import Lexer
+    from lpp.parser import Parser
+    from lpp.semantic import check_names
+    src = "x::int\nx = 5\n"
+    tree = Parser(Lexer(src).tokenize()).parse()
+    errors = check_names(tree)
+    assert errors == [], f"Unexpected undeclared-name errors: {errors}"
+
+def test_annotation_annotation_expr_checked():
+    from lpp.lexer import Lexer
+    from lpp.parser import Parser
+    from lpp.semantic import check_names
+    src = "x::MyType\n"
+    tree = Parser(Lexer(src).tokenize()).parse()
+    errors = check_names(tree)
+    assert any(name == "MyType" for name, _ in errors)
+
+
+def test_assignment_annotation_expr_checked():
+    """Assignment annotation x::MyType = 5 should flag undeclared MyType."""
+    from lpp.lexer import Lexer
+    from lpp.parser import Parser
+    from lpp.semantic import check_names
+    src = "x::MyType = 5\n"
+    tree = Parser(Lexer(src).tokenize()).parse()
+    errors = check_names(tree)
+    assert any(name == "MyType" for name, _ in errors)
+
+
+def test_param_annotation_expr_checked():
+    """Param annotation def f(x::MyType) should flag undeclared MyType."""
+    from lpp.lexer import Lexer
+    from lpp.parser import Parser
+    from lpp.semantic import check_names
+    src = "def f(x::MyType)\n    pass\n"
+    tree = Parser(Lexer(src).tokenize()).parse()
+    errors = check_names(tree)
+    assert any(name == "MyType" for name, _ in errors)
+
+
+def test_return_annotation_expr_checked():
+    """Return annotation def f()::MyType should flag undeclared MyType."""
+    from lpp.lexer import Lexer
+    from lpp.parser import Parser
+    from lpp.semantic import check_names
+    src = "def f()::MyType\n    pass\n"
+    tree = Parser(Lexer(src).tokenize()).parse()
+    errors = check_names(tree)
+    assert any(name == "MyType" for name, _ in errors)

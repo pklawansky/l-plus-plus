@@ -266,19 +266,50 @@ class Parser:
         return self._parse_postfix()
 
     def _parse_subscript_key(self) -> Expression:
+        # Handle leading :: (COLONCOLON) for slices like a[::2]
+        if self.match(TokenType.COLONCOLON):
+            self.advance()
+            step = None if self.match(TokenType.RBRACKET) else self.parse_expression()
+            self.expect(TokenType.RBRACKET)
+            return Slice(None, None, step)
+
         if self.match(TokenType.COLON):
             start = None
         else:
             start = self.parse_expression()
-        if not self.match(TokenType.COLON):
+
+        if not self.match(TokenType.COLON, TokenType.COLONCOLON):
+            # Comma-separated tuple key: dict[str, int]
+            if self.match(TokenType.COMMA):
+                elements = [start]
+                while self.match(TokenType.COMMA):
+                    self.advance()
+                    if self.match(TokenType.RBRACKET):
+                        break
+                    elements.append(self.parse_expression())
+                self.expect(TokenType.RBRACKET)
+                return Tuple(elements)
             self.expect(TokenType.RBRACKET)
             return start
-        self.advance()
-        stop = None if self.match(TokenType.COLON, TokenType.RBRACKET) else self.parse_expression()
-        step = None
-        if self.match(TokenType.COLON):
+
+        # Slice: consume the separator (: or ::)
+        if self.match(TokenType.COLONCOLON):
+            # x:: means stop=None, next token is step (e.g. a[1::2])
             self.advance()
+            stop = None
             step = None if self.match(TokenType.RBRACKET) else self.parse_expression()
+        else:
+            # x: — normal single colon
+            self.advance()
+            stop = None if self.match(TokenType.COLON, TokenType.COLONCOLON, TokenType.RBRACKET) else self.parse_expression()
+            step = None
+            if self.match(TokenType.COLON):
+                self.advance()
+                step = None if self.match(TokenType.RBRACKET) else self.parse_expression()
+            elif self.match(TokenType.COLONCOLON):
+                self.advance()
+                step = None if self.match(TokenType.RBRACKET) else self.parse_expression()
+
         self.expect(TokenType.RBRACKET)
         return Slice(start, stop, step)
 
@@ -487,28 +518,52 @@ class Parser:
             self.advance()
         name = self.expect(TokenType.IDENT).value
         params = self._parse_params()
+        return_annotation = None
+        if self.match(TokenType.COLONCOLON):
+            self.advance()
+            return_annotation = self.parse_expression()
         self.skip_newlines()
         body = self._parse_block()
-        return FunctionDef(name, params, body, is_method, decorators)
+        return FunctionDef(name, params, body, is_method, decorators, return_annotation)
 
     def _parse_params(self) -> list[Param]:
+        # Optional parentheses: def f(x::int, y) or def f x y
+        paren_wrapped = self.match(TokenType.LPAREN)
+        if paren_wrapped:
+            self.advance()  # consume (
         params = []
         while self.match(TokenType.IDENT, TokenType.STAR, TokenType.STARSTAR):
             if self.match(TokenType.STARSTAR):
                 self.advance()
                 pname = self.expect(TokenType.IDENT).value
-                params.append(Param(pname, kind="kw"))
+                annotation = None
+                if self.match(TokenType.COLONCOLON):
+                    self.advance()
+                    annotation = self.parse_expression()
+                params.append(Param(pname, kind="kw", annotation=annotation))
             elif self.match(TokenType.STAR):
                 self.advance()
                 pname = self.expect(TokenType.IDENT).value
-                params.append(Param(pname, kind="var"))
+                annotation = None
+                if self.match(TokenType.COLONCOLON):
+                    self.advance()
+                    annotation = self.parse_expression()
+                params.append(Param(pname, kind="var", annotation=annotation))
             else:
                 pname = self.advance().value
+                annotation = None
+                if self.match(TokenType.COLONCOLON):
+                    self.advance()
+                    annotation = self.parse_expression()
                 default = None
                 if self.match(TokenType.EQ):
                     self.advance()
                     default = self.parse_expression()
-                params.append(Param(pname, default))
+                params.append(Param(pname, default, annotation=annotation))
+            if paren_wrapped and self.match(TokenType.COMMA):
+                self.advance()
+        if paren_wrapped:
+            self.expect(TokenType.RPAREN)
         return params
 
     def _parse_class(self, decorators=None) -> ClassDef:
@@ -821,6 +876,21 @@ class Parser:
 
         # Path 3: expression, then check for assignment/aug-assignment/append
         expr = self.parse_expression()
+
+        # Type annotation: x::type = val  OR  x::type (bare declaration)
+        if self.peek_type() == TokenType.COLONCOLON:
+            self.advance()
+            annotation = self.parse_expression()
+            if self.peek_type() == TokenType.EQ:
+                self.advance()
+                value = self._parse_stmt_tuple()
+                if self.match(TokenType.NEWLINE): self.advance()
+                target = expr.id if isinstance(expr, Name) else expr
+                return Assignment(target, value, annotation=annotation)
+            if self.match(TokenType.NEWLINE): self.advance()
+            target = expr.id if isinstance(expr, Name) else expr
+            return AnnotationStatement(target, annotation)
+
         AUG = {
             TokenType.PLUSEQ: "+=", TokenType.MINUSEQ: "-=",
             TokenType.STAREQ: "*=", TokenType.SLASHEQ: "/=", TokenType.PERCENTEQ: "%=",
@@ -854,17 +924,20 @@ class Parser:
         return ExprStatement(expr)
 
     def _try_parse_self_attr_assign(self) -> Statement | None:
-        """Try to parse @attr = expr or @attr op= expr. Returns None if the
-        @ token is not followed by an assignment operator (bare SelfAttr read)."""
+        """Try to parse @attr = expr, @attr op= expr, @attr::type = expr, or @attr::type."""
         save = self.pos
         try:
             self.advance()  # consume @
             attr = self.expect(TokenType.IDENT).value
+            annotation = None
+            if self.peek_type() == TokenType.COLONCOLON:
+                self.advance()
+                annotation = self.parse_expression()
             AUG = {
                 TokenType.PLUSEQ: "+=", TokenType.MINUSEQ: "-=",
                 TokenType.STAREQ: "*=", TokenType.SLASHEQ: "/=", TokenType.PERCENTEQ: "%=",
             }
-            if self.peek_type() in AUG:
+            if annotation is None and self.peek_type() in AUG:
                 op = AUG[self.advance().type]
                 value = self.parse_expression()
                 if self.match(TokenType.NEWLINE): self.advance()
@@ -873,7 +946,10 @@ class Parser:
                 self.advance()
                 value = self.parse_expression()
                 if self.match(TokenType.NEWLINE): self.advance()
-                return Assignment(f"self.{attr}", value)
+                return Assignment(f"self.{attr}", value, annotation=annotation)
+            if annotation is not None:
+                if self.match(TokenType.NEWLINE): self.advance()
+                return AnnotationStatement(f"self.{attr}", annotation)
             self.pos = save
             return None
         except ParseError:

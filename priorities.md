@@ -1,6 +1,6 @@
 # L++ Work Priorities
 
-*Last updated: 2026-04-18 (session 8)*
+*Last updated: 2026-04-22 (session 9)*
 
 ---
 
@@ -126,9 +126,11 @@ Added `_watch` and reworked `main()` in `cli.py` with argv pre-check routing (av
 Other deferred items:
 - **Watch mode** — covered in Layer 1.
 
-## Enterprise Packaging — Layer 3: Type Annotations (deferred)
+## Enterprise Packaging — Layer 3: Type Annotations
 
-- **Type annotation syntax** — `x: int`, `def f(x: int) -> str:` require a design decision since `:` conflicts with class-base syntax. Candidate: `x::int`.
+### Type annotation syntax — `[ DONE ]`
+
+`::` annotation operator: variable annotations (`x::int = 5`, `x::int`), param annotations (`f(x::int)`), return annotations (`f()::bool`), self-attr annotations (`@x::str = "hi"`), generic types (`dict[str, int]`). Transpiles verbatim to Python type hints. Semantic checker validates annotation expressions; workspace index includes annotated names. 363/363 tests pass.
 
 ## Enterprise Packaging — Layer 4: Editor Tooling (deferred)
 

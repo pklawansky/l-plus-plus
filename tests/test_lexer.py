@@ -71,10 +71,15 @@ def test_unterminated_string_raises():
     with pytest.raises(LexError, match="[Uu]nterminated"):
         tokenize('"hello')
 
-def test_double_colon_is_two_colons():
-    # :: is no longer a dedicated token — lexes as COLON COLON
-    result = types("a::b")
-    assert result == [TokenType.IDENT, TokenType.COLON, TokenType.COLON, TokenType.IDENT]
+def test_coloncolon_token():
+    assert types("::") == [TokenType.COLONCOLON]
+
+def test_coloncolon_is_one_token():
+    toks = [t for t in tokenize("::") if t.type != TokenType.EOF]
+    assert len(toks) == 1
+
+def test_single_colon_unchanged():
+    assert types(":") == [TokenType.COLON]
 
 def test_as_is_now_a_keyword():
     # 'as' is now a keyword (Tier 2: used in with statements and exception handlers)

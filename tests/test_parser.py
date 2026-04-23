@@ -531,6 +531,18 @@ def test_parse_slice_step():
     result = parse_expr("lst[::2]")
     assert result == Subscript(Name("lst"), Slice(None, None, NumberLiteral(2)))
 
+def test_slice_empty_start_stop():
+    # Explicitly verify that :: (COLONCOLON token) maps both start and stop to None,
+    # with the value after :: becoming the step.  This directly exercises the
+    # COLONCOLON branch added to _parse_subscript_key.
+    result = parse_expr("a[::2]")
+    assert isinstance(result, Subscript)
+    assert result.obj == Name("a")
+    assert isinstance(result.key, Slice)
+    assert result.key.start is None
+    assert result.key.stop is None
+    assert result.key.step == NumberLiteral(2)
+
 def test_parse_slice_open_end():
     result = parse_expr("lst[1:]")
     assert result == Subscript(Name("lst"), Slice(NumberLiteral(1), None, None))
@@ -542,6 +554,11 @@ def test_parse_slice_open_start():
 def test_parse_slice_full():
     result = parse_expr("lst[1:5:2]")
     assert result == Subscript(Name("lst"), Slice(NumberLiteral(1), NumberLiteral(5), NumberLiteral(2)))
+
+def test_subscript_multi_arg():
+    # dict[str, int] — comma inside [] produces Tuple key
+    result = parse_expr("dict[str, int]")
+    assert result == Subscript(Name("dict"), Tuple([Name("str"), Name("int")]))
 
 # *args / **kwargs in function params
 def test_parse_params_star_args():
@@ -757,3 +774,74 @@ def test_decorated_functiondef_line_is_decorator_line():
     tokens = Lexer("@staticmethod\ndef foo x\n  x\n").tokenize()
     prog = Parser(tokens).parse()
     assert prog.body[0].line == 1     # @ is on line 1
+
+# --- :: annotation tests ---
+
+def parse_stmts(src: str):
+    tokens = Lexer(src).tokenize()
+    return Parser(tokens).parse().body
+
+def test_param_annotation_simple():
+    stmts = parse_stmts("def f(x::int)\n    x\n")
+    assert stmts[0].params[0].annotation == Name("int")
+
+def test_param_annotation_complex():
+    stmts = parse_stmts("def f(items::list[int])\n    items\n")
+    assert stmts[0].params[0].annotation == Subscript(Name("list"), Name("int"))
+
+def test_return_annotation():
+    stmts = parse_stmts("def f()::bool\n    True\n")
+    assert stmts[0].return_annotation == Name("bool")
+
+def test_param_and_return_annotation():
+    stmts = parse_stmts("def f(x::int)::str\n    s(x)\n")
+    fn = stmts[0]
+    assert fn.params[0].annotation == Name("int")
+    assert fn.return_annotation == Name("str")
+
+def test_param_no_annotation_unchanged():
+    stmts = parse_stmts("def f(x)\n    x\n")
+    assert stmts[0].params[0].annotation is None
+    assert stmts[0].return_annotation is None
+
+def test_annotated_assignment():
+    stmts = parse_stmts("x::int = 5\n")
+    stmt = stmts[0]
+    assert isinstance(stmt, Assignment)
+    assert stmt.target == "x"
+    assert stmt.annotation == Name("int")
+    assert stmt.value == NumberLiteral(5)
+
+def test_bare_annotation_statement():
+    stmts = parse_stmts("x::int\n")
+    stmt = stmts[0]
+    assert isinstance(stmt, AnnotationStatement)
+    assert stmt.target == "x"
+    assert stmt.annotation == Name("int")
+
+def test_annotated_complex_type():
+    stmts = parse_stmts("items::list[str] = []\n")
+    stmt = stmts[0]
+    assert isinstance(stmt, Assignment)
+    assert stmt.annotation == Subscript(Name("list"), Name("str"))
+
+def test_annotated_dict_type():
+    stmts = parse_stmts("mapping::dict[str, int] = {}\n")
+    stmt = stmts[0]
+    assert isinstance(stmt, Assignment)
+    assert stmt.annotation == Subscript(Name("dict"), Tuple([Name("str"), Name("int")]))
+
+def test_self_attr_annotated_assignment():
+    stmts = parse_stmts("@name::str = \"Alice\"\n")
+    stmt = stmts[0]
+    assert isinstance(stmt, Assignment)
+    assert stmt.target == "self.name"
+    assert stmt.annotation == Name("str")
+    assert stmt.value == StringLiteral(["Alice"])
+
+def test_self_attr_bare_annotation():
+    stmts = parse_stmts("@count::int\n")
+    stmt = stmts[0]
+    assert isinstance(stmt, AnnotationStatement)
+    assert stmt.target == "self.count"
+    assert stmt.annotation == Name("int")

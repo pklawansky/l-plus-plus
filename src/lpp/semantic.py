@@ -3,7 +3,7 @@ from .ast_nodes import (
     Program, Statement, Expression,
     FunctionDef, ClassDef, Assignment, AugAssignment, AppendStatement,
     ForStatement, IfStatement, DoStatement, TryStatement, WithStatement,
-    UnpackAssignment, AliasStatement, UseStatement,
+    UnpackAssignment, AliasStatement, UseStatement, AnnotationStatement,
     ExprStatement, RetStatement, RaiseStatement, AssertStatement,
     GlobalStatement, NonlocalStatement, YieldStatement, DelStatement,
     Name, SelfAttr, Attribute, Subscript, BinOp, UnaryOp, Call,
@@ -70,6 +70,8 @@ def _collect_decls(stmt: Statement, into: set[str]) -> None:
         for t in stmt.targets:
             if isinstance(t, Name):
                 into.add(t.id)
+    elif isinstance(stmt, AnnotationStatement) and isinstance(stmt.target, str):
+        into.add(stmt.target)
     elif isinstance(stmt, GlobalStatement):
         into.update(stmt.names)
     elif isinstance(stmt, NonlocalStatement):
@@ -80,6 +82,12 @@ def _check_stmt(stmt: Statement, scope: frozenset[str], errors: list[tuple[str, 
     line: int = getattr(stmt, "line", None) or 0
 
     if isinstance(stmt, FunctionDef):
+        # Check param and return annotations against outer scope
+        for p in stmt.params:
+            if p.annotation is not None:
+                _check_expr(p.annotation, scope, line, errors)
+        if stmt.return_annotation is not None:
+            _check_expr(stmt.return_annotation, scope, line, errors)
         local: set[str] = set(scope)
         if stmt.is_method:
             local.add("self")
@@ -99,6 +107,8 @@ def _check_stmt(stmt: Statement, scope: frozenset[str], errors: list[tuple[str, 
             _check_stmt(m, cls_scope, errors)
 
     elif isinstance(stmt, Assignment):
+        if stmt.annotation is not None:
+            _check_expr(stmt.annotation, scope, line, errors)
         _check_expr(stmt.value, scope, line, errors)
         if not isinstance(stmt.target, str):
             _check_expr(stmt.target, scope, line, errors)
@@ -140,6 +150,9 @@ def _check_stmt(stmt: Statement, scope: frozenset[str], errors: list[tuple[str, 
     elif isinstance(stmt, YieldStatement):
         if stmt.value is not None:
             _check_expr(stmt.value, scope, line, errors)
+
+    elif isinstance(stmt, AnnotationStatement):
+        _check_expr(stmt.annotation, scope, line, errors)
 
     elif isinstance(stmt, IfStatement):
         _check_expr(stmt.condition, scope, line, errors)

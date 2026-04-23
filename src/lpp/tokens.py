@@ -33,6 +33,7 @@ class TokenType(Enum):
     DEL = auto()
     PASS = auto()
     YIELD = auto()
+    COLONCOLON = auto()  # ::
     # Literals
     NUMBER = auto()
     STRING = auto()

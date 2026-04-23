@@ -29,7 +29,12 @@ class Transpiler:
                 return self._cls(node, depth)
             case Assignment(target, value):
                 tgt = target if isinstance(target, str) else self._expr(target)
+                if node.annotation is not None:
+                    return f"{pad}{tgt}: {self._expr(node.annotation)} = {self._expr(value)}"
                 return f"{pad}{tgt} = {self._expr(value)}"
+            case AnnotationStatement(target, annotation):
+                tgt = target if isinstance(target, str) else self._expr(target)
+                return f"{pad}{tgt}: {self._expr(annotation)}"
             case AugAssignment(target, op, value):
                 tgt = target if isinstance(target, str) else self._expr(target)
                 return f"{pad}{tgt} {op} {self._expr(value)}"
@@ -127,20 +132,24 @@ class Transpiler:
         if node.is_method:
             params.append("self")
         for p in node.params:
+            ann = f": {self._expr(p.annotation)}" if p.annotation is not None else ""
             if p.kind == "var":
-                params.append(f"*{p.name}")
+                params.append(f"*{p.name}{ann}")
             elif p.kind == "kw":
-                params.append(f"**{p.name}")
+                params.append(f"**{p.name}{ann}")
             elif p.default is not None:
-                params.append(f"{p.name}={self._expr(p.default)}")
+                # PEP 8: spaces around = when annotation present, no spaces otherwise
+                sep = " = " if p.annotation is not None else "="
+                params.append(f"{p.name}{ann}{sep}{self._expr(p.default)}")
             else:
-                params.append(p.name)
+                params.append(f"{p.name}{ann}")
         param_str = ", ".join(params)
         name = f"__{node.name}__" if node.is_method and node.name in self._DUNDER_NAMES else node.name
+        ret_ann = f" -> {self._expr(node.return_annotation)}" if node.return_annotation is not None else ""
         lines = []
         for dec in node.decorators:
             lines.append(f"{pad}@{self._expr(dec)}")
-        lines.append(f"{pad}def {name}({param_str}):")
+        lines.append(f"{pad}def {name}({param_str}){ret_ann}:")
         if not node.body:
             lines.append(f"{INDENT * (depth + 1)}pass")
         else:
